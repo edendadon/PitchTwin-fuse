@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}Debrief — {{ proposal.company_name }} — PitchTwin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Client Debrief</h1>
+    <p class="page-subtitle">{{ proposal.company_name }} — 
+      {% if sess %}Session {{ sess.id[:8] }}...{% else %}No session yet{% endif %}
+    </p>
+  </div>
+  <a href="/proposal/{{ proposal.id }}" class="btn-secondary">Back to Proposal</a>
+</div>
+
+{% if not sess %}
+<div class="empty-card">
+  <h3>No twin session yet</h3>
+  <p>Once you share the twin link and the client has a conversation, the debrief will appear here automatically.</p>
+</div>
+
+{% elif not sess.debrief %}
+<div class="empty-card">
+  <h3>Session active — no debrief yet</h3>
+  <p>The client's conversation is still in progress or the session hasn't ended yet.</p>
+  <p>Status: <strong>{{ sess.status }}</strong></p>
+  <button onclick="location.reload()" class="btn-secondary" style="margin-top:12px">Refresh</button>
+</div>
+
+{% else %}
+
+{% if debrief_data %}
+
+<div class="debrief-summary-card">
+  <div class="engagement-badge engagement-{{ debrief_data.get('overall_engagement_level', 'medium') }}">
+    {{ debrief_data.get('overall_engagement_level', 'medium').upper() }} ENGAGEMENT
+  </div>
+  <p class="debrief-summary-text">{{ debrief_data.get('session_summary', '') }}</p>
+</div>
+
+<div class="debrief-grid">
+
+  <!-- Recommended Talking Points -->
+  {% if debrief_data.get('recommended_talking_points') %}
+  <div class="debrief-card debrief-highlight">
+    <h3>Recommended Talking Points for Your First Call</h3>
+    <ul>
+      {% for pt in debrief_data.get('recommended_talking_points', []) %}
+      <li>{{ pt }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <!-- Apparent Priorities -->
+  {% if debrief_data.get('apparent_priorities') %}
+  <div class="debrief-card">
+    <h3>Client's Apparent Priorities</h3>
+    <ol>
+      {% for p in debrief_data.get('apparent_priorities', []) %}
+      <li>{{ p }}</li>
+      {% endfor %}
+    </ol>
+  </div>
+  {% endif %}
+
+  <!-- Positive Signals -->
+  {% if debrief_data.get('positive_signals') %}
+  <div class="debrief-card debrief-positive">
+    <h3>Positive Signals</h3>
+    <ul>
+      {% for s in debrief_data.get('positive_signals', []) %}
+      <li>{{ s }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <!-- Concerns -->
+  {% if debrief_data.get('concerns_or_hesitations') %}
+  <div class="debrief-card debrief-concern">
+    <h3>Concerns / Hesitations</h3>
+    <ul>
+      {% for c in debrief_data.get('concerns_or_hesitations', []) %}
+      <li>{{ c }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <!-- Topics Explored -->
+  {% if debrief_data.get('topics_explored') %}
+  <div class="debrief-card">
+    <h3>Topics Explored</h3>
+    <table class="topics-table">
+      <thead><tr><th>Topic</th><th>Depth</th><th>Sentiment</th></tr></thead>
+      <tbody>
+        {% for t in debrief_data.get('topics_explored', []) %}
+        <tr>
+          <td>{{ t.get('topic') }}</td>
+          <td>{{ t.get('depth') }}</td>
+          <td><span class="sentiment sentiment-{{ t.get('client_sentiment', 'neutral') }}">{{ t.get('client_sentiment') }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <!-- Red Flags -->
+  {% if debrief_data.get('red_flags') %}
+  <div class="debrief-card debrief-redflag">
+    <h3>Red Flags</h3>
+    <ul>
+      {% for f in debrief_data.get('red_flags', []) %}
+      <li>{{ f }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <!-- Questions Asked -->
+  {% if debrief_data.get('questions_asked') %}
+  <div class="debrief-card">
+    <h3>Questions the Client Asked</h3>
+    <ul class="questions-list">
+      {% for q in debrief_data.get('questions_asked', []) %}
+      <li>{{ q }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+</div>
+
+{% elif debrief_data.get('raw') %}
+<pre class="raw-output">{{ debrief_data.get('raw') }}</pre>
+{% endif %}
+
+{% endif %}
+
+{% endblock %}

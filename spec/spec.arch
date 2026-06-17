@@ -1,0 +1,261 @@
+# spec.arch — PitchTwin Architect's Blueprint
+
+## System Overview
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        PitchTwin System                         │
+│                                                                 │
+│  ┌──────────────┐        ┌───────────────────────────────────┐  │
+│  │  Consultant  │        │          Flask Web Server         │  │
+│  │  Dashboard   │◄──────►│                                   │  │
+│  └──────────────┘        │  /             dashboard          │  │
+│                          │  /proposal/new  trigger pipeline  │  │
+│  ┌──────────────┐        │  /proposal/:id  view package      │  │
+│  │    Client    │◄──────►│  /twin/:id      chat interface    │  │
+│  │  Twin Chat   │        │  /twin/:id/end  end session       │  │
+│  └──────────────┘        │  /debrief/:id   view debrief      │  │
+│                          └──────────────┬────────────────────┘  │
+│                                         │                        │
+│                          ┌──────────────▼────────────────────┐  │
+│                          │          Orchestrator              │  │
+│                          │                                   │  │
+│                          │  Phase 1: PARALLEL                │  │
+│                          │  ┌──────────────┐ ┌────────────┐  │  │
+│                          │  │Profile Agent │ │Client      │  │  │
+│                          │  │              │ │Research    │  │  │
+│                          │  │raw profile   │ │Agent       │  │  │
+│                          │  │    ▼         │ │brief+name  │  │  │
+│                          │  │structured    │ │    ▼       │  │  │
+│                          │  │profile JSON  │ │client ctx  │  │  │
+│                          │  └──────┬───────┘ └─────┬──────┘  │  │
+│                          │         └────────┬───────┘         │  │
+│                          │                  │ HANDOFF         │  │
+│                          │  Phase 2: SEQUENTIAL               │  │
+│                          │                  ▼                 │  │
+│                          │         ┌────────────────┐         │  │
+│                          │         │ Matching Agent │         │  │
+│                          │         │ relevance map  │         │  │
+│                          │         └───────┬────────┘         │  │
+│                          │                 │ HANDOFF          │  │
+│                          │        ┌────────┴────────┐         │  │
+│                          │        ▼                 ▼         │  │
+│                          │ ┌─────────────┐  ┌───────────────┐ │  │
+│                          │ │Writer Agent │  │   Gap Agent   │ │  │
+│                          │ │CV+bio+      │  │gap analysis + │ │  │
+│                          │ │talk points  │  │framing notes  │ │  │
+│                          │ └──────┬──────┘  └───────┬───────┘ │  │
+│                          │        └────────┬─────────┘         │  │
+│                          │                 │                   │  │
+│                          │         ┌───────▼────────┐          │  │
+│                          │         │ PROPOSAL PKG   │          │  │
+│                          │         │ (stored SQLite)│          │  │
+│                          │         └────────────────┘          │  │
+│                          └───────────────────────────────────┘  │
+│                                                                 │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                  Twin Session Layer                       │   │
+│  │                                                          │   │
+│  │  Client sends message → Persona Agent → response         │   │
+│  │  (grounded strictly in profile data, no hallucination)   │   │
+│  │                                                          │   │
+│  │  Session end → Debrief Agent → report → consultant       │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                   Data Layer (SQLite)                     │   │
+│  │  Tables: consultant_profiles, proposals, twin_sessions   │   │
+│  └──────────────────────────────────────────────────────────┘   │
+│                                                                 │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │                    LLM Client Layer                       │   │
+│  │  Primary: Google Gemini API (gemini-1.5-flash)           │   │
+│  │  Fallback: Groq API (llama3-8b-8192)                     │   │
+│  └──────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Agent Communication Protocol
+
+Every agent is a pure Python function with this signature:
+
+```python
+def run_<agent_name>(input_data: dict, llm_client: LLMClient) -> dict:
+    system_prompt = "..."
+    user_message = json.dumps(input_data)
+    raw_output = llm_client.call(system_prompt, user_message)
+    return parse_output(raw_output)
+```
+
+Agents communicate **only via return values** — no shared state, no side effects.
+The orchestrator owns all data flow and passes outputs explicitly as inputs to the next agent.
+
+---
+
+## Handoff Map (Data Flow)
+
+```
+raw_profile (text)
+        │
+        ▼
+[Profile Agent]
+        │
+        └── structured_profile: {skills[], experience[], projects[], tone_markers}
+                │
+                ▼ (merges with)
+[Client Research Agent] ← client_brief (text) + company_name (string)
+        │
+        └── client_context: {industry, challenges[], tech_stack[], tone}
+                │
+                ▼
+[Matching Agent] ← structured_profile + client_context
+        │
+        └── relevance_map: [{experience_item, relevance_score, reason}]
+                │
+         ┌──────┴──────┐
+         ▼             ▼
+[Writer Agent]    [Gap Agent]
+  relevance_map    client_requirements + structured_profile
+  + client_tone         │
+         │         gap_analysis: {missing[], suggestions[]}
+         ▼
+  proposal_artifacts:
+    tailored_cv (text)
+    bio (text)
+    talking_points (list)
+         │
+         └── ALL → PROPOSAL PACKAGE stored in SQLite
+```
+
+---
+
+## Persona Agent Architecture
+
+```
+[Client sends message]
+         │
+         ▼
+[Persona Agent]
+  System prompt contains:
+    - Full structured profile (injected at session start)
+    - Matched experience highlights
+    - Tone markers from profile
+    - HARD CONSTRAINT: "Only reference experiences explicitly in the profile below.
+                        If asked about something not in the profile, say so honestly."
+  User message: client's question
+         │
+         ▼
+[LLM generates response]
+  → Appended to transcript in SQLite
+  → Returned to client chat UI
+```
+
+---
+
+## Debrief Agent Architecture
+
+```
+[Session end event]  ← triggered by POST /twin/:id/end OR browser close (polling)
+         │
+         ▼
+[Debrief Agent]
+  Input: full transcript [{role, content, timestamp}]
+  System prompt: "Analyze this conversation. Extract:
+    1. Topics the client asked about most
+    2. Apparent concerns or hesitations
+    3. Positive signals and interests
+    4. Recommended talking points for consultant's first real call"
+         │
+         ▼
+  debrief_report (text) → stored in twin_session → visible on consultant dashboard
+```
+
+---
+
+## File Structure
+
+```
+pitchtwin/
+├── app.py                      # Flask app factory + route registration
+├── orchestrator.py             # Pipeline runner, threading logic
+├── llm_client.py               # LLM wrapper (Gemini + Groq fallback)
+├── db.py                       # SQLite init, CRUD operations
+├── models.py                   # Dataclasses: Profile, Proposal, TwinSession
+├── agents/
+│   ├── __init__.py
+│   ├── profile_agent.py        # Parses consultant profile
+│   ├── client_research_agent.py # Analyzes client brief
+│   ├── matching_agent.py       # Ranks relevance
+│   ├── writer_agent.py         # Generates CV, bio, talking points
+│   ├── gap_agent.py            # Identifies gaps
+│   ├── persona_agent.py        # Powers the twin conversation
+│   └── debrief_agent.py        # Summarizes client session
+├── templates/
+│   ├── base.html
+│   ├── dashboard.html
+│   ├── proposal.html
+│   ├── twin_chat.html
+│   └── debrief.html
+├── static/
+│   └── css/style.css
+├── data/
+│   ├── sample_profile.json
+│   └── sample_brief.json
+├── spec/
+│   ├── spec.plan
+│   ├── spec.tasks
+│   └── spec.arch               # This file
+├── tests/
+│   └── test_agents.py
+├── Dockerfile
+├── docker-compose.yml
+├── requirements.txt
+├── .env.example
+└── README.md
+```
+
+---
+
+## Concurrency Model
+
+```
+Thread 1 (main)                Thread 2
+      │                             │
+orchestrator.run()                  │
+      │                             │
+  t1 = Thread(profile_agent)        │
+  t2 = Thread(client_research)      │
+  t1.start() ──────────────────► profile_agent runs
+  t2.start() ──────────────────────────────────────► client_research runs
+  t1.join()  ◄────────────────── returns structured_profile
+  t2.join()  ◄──────────────────────────────────────── returns client_context
+      │
+  matching_agent(structured_profile, client_context)
+      │
+  writer_agent(relevance_map) + gap_agent(requirements, profile) [can thread]
+      │
+  store results → return proposal
+```
+
+---
+
+## Security & Grounding Notes
+
+- **No hallucination constraint**: Persona Agent system prompt explicitly lists only real profile data. All profile data is injected verbatim. No web search, no knowledge expansion.
+- **Session isolation**: Each twin session has a unique UUID. Clients only access their assigned session.
+- **API key safety**: Keys loaded from `.env`, never committed. Docker secrets via environment variables.
+
+---
+
+## Scoring Alignment
+
+| Criterion | How PitchTwin addresses it |
+|---|---|
+| Functional Product (20pts) | End-to-end happy path: profile → proposal → twin chat → debrief |
+| Multi-Agent Architecture (20pts) | 7 specialized agents, clear roles, parallel + sequential orchestration, explicit handoffs |
+| Agentic SDLC (10pts) | spec.plan + spec.tasks + spec.arch drive the build |
+| Architect's Blueprint (10pts) | This document |
+| Impact (5pts) | Internal: saves consultant time. Market: SaaS-ready pattern for any firm |
+| Presentation (10pts) | Clear problem→solution→demo arc |

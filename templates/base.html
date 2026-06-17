@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}PitchTwin{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+  <nav class="navbar">
+    <a href="/" class="nav-brand">PitchTwin <span class="tagline">Your CV, came to life.</span></a>
+    <div class="nav-links">
+      <a href="/">Dashboard</a>
+      <a href="/proposal/new" class="btn-primary">New Proposal</a>
+    </div>
+  </nav>
+
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer>
+    <p>PitchTwin &mdash; Powered by multi-agent AI</p>
+  </footer>
+</body>
+</html>

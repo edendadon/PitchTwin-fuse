@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% block title %}Add Consultant — PitchTwin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Add Consultant Profile</h1>
+</div>
+
+{% if error %}
+<div class="alert alert-error">{{ error }}</div>
+{% endif %}
+
+<div class="form-card">
+  <form method="POST" action="/profile/new" id="profile-form">
+    <div class="form-group">
+      <label for="name">Consultant Name</label>
+      <input type="text" id="name" name="name" placeholder="e.g. Sarah Chen" required>
+    </div>
+
+    <div class="form-group">
+      <label>CV File <span class="label-optional">optional — drag &amp; drop or click to upload</span></label>
+
+      <div class="drop-zone" id="drop-zone">
+        <input type="file" id="cv-file" accept=".pdf,.docx,.txt" hidden>
+        <div class="drop-zone-icon">&#8659;</div>
+        <div class="drop-zone-text">Drop your CV here</div>
+        <div class="drop-zone-sub">PDF, DOCX, or TXT &middot; <span class="drop-browse">browse</span></div>
+        <div class="drop-zone-filename" id="drop-filename"></div>
+      </div>
+      <div id="extract-status" class="extract-status"></div>
+    </div>
+
+    <div class="form-group">
+      <label for="raw_profile">Raw Profile / CV Text</label>
+      <textarea id="raw_profile" name="raw_profile" rows="14"
+        placeholder="Paste the consultant's full CV or profile text here — or upload a file above to auto-fill this field."></textarea>
+      <p class="form-hint">Upload a file above to extract text automatically, or paste manually. The Profile Agent will parse and structure it.</p>
+    </div>
+
+    <div class="form-actions">
+      <a href="/" class="btn-secondary">Cancel</a>
+      <button type="submit" class="btn-primary">Save Profile</button>
+    </div>
+  </form>
+</div>
+
+<style>
+.label-optional {
+  font-weight: 400;
+  color: var(--gray-500);
+  font-size: 12px;
+  margin-left: 6px;
+}
+.drop-zone {
+  border: 2px dashed var(--gray-200);
+  border-radius: 10px;
+  padding: 32px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+  background: var(--gray-50);
+  position: relative;
+}
+.drop-zone:hover, .drop-zone.dragover {
+  border-color: var(--accent);
+  background: var(--accent-light);
+}
+.drop-zone-icon {
+  font-size: 32px;
+  color: var(--gray-500);
+  margin-bottom: 8px;
+  line-height: 1;
+}
+.drop-zone-text {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--gray-700);
+  margin-bottom: 4px;
+}
+.drop-zone-sub {
+  font-size: 13px;
+  color: var(--gray-500);
+}
+.drop-browse {
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.drop-zone-filename {
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  min-height: 18px;
+}
+.extract-status {
+  margin-top: 8px;
+  font-size: 13px;
+  min-height: 18px;
+}
+.extract-status.loading { color: var(--gray-500); }
+.extract-status.success { color: var(--success); }
+.extract-status.error   { color: var(--danger); }
+</style>
+
+<script>
+const dropZone   = document.getElementById('drop-zone');
+const fileInput  = document.getElementById('cv-file');
+const textarea   = document.getElementById('raw_profile');
+const nameInput  = document.getElementById('name');
+const status     = document.getElementById('extract-status');
+const filename   = document.getElementById('drop-filename');
+
+// Click zone → open file picker
+dropZone.addEventListener('click', () => fileInput.click());
+
+// Drag events
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  const file = e.dataTransfer.files[0];
+  if (file) handleFile(file);
+});
+
+// File picker change
+fileInput.addEventListener('change', () => {
+  if (fileInput.files[0]) handleFile(fileInput.files[0]);
+});
+
+async function handleFile(file) {
+  const allowed = ['application/pdf',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'text/plain'];
+  const ext = file.name.split('.').pop().toLowerCase();
+
+  if (!['pdf','docx','txt'].includes(ext)) {
+    setStatus('error', 'Unsupported file type. Use PDF, DOCX, or TXT.');
+    return;
+  }
+
+  filename.textContent = file.name;
+  setStatus('loading', 'Extracting text...');
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  try {
+    const res = await fetch('/profile/extract-cv', { method: 'POST', body: formData });
+    const data = await res.json();
+
+    if (data.error) {
+      setStatus('error', 'Error: ' + data.error);
+      return;
+    }
+
+    textarea.value = data.text;
+    setStatus('success', `Extracted ${data.char_count.toLocaleString()} characters. Review and edit below if needed.`);
+
+    // Auto-fill name if empty and we got one
+    if (!nameInput.value.trim() && data.detected_name) {
+      nameInput.value = data.detected_name;
+    }
+  } catch (e) {
+    setStatus('error', 'Upload failed. Please try again.');
+  }
+}
+
+function setStatus(type, msg) {
+  status.className = 'extract-status ' + type;
+  status.textContent = msg;
+}
+</script>
+{% endblock %}

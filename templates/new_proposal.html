@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}New Proposal — PitchTwin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>New Proposal</h1>
+  <p class="page-subtitle">Generate a tailored proposal package in under 5 minutes.</p>
+</div>
+
+{% if error %}
+<div class="alert alert-error">{{ error }}</div>
+{% endif %}
+
+<div class="form-card">
+  <form method="POST" action="/proposal/new" id="proposal-form">
+    <div class="form-group">
+      <label for="consultant_id">Consultant</label>
+      <select id="consultant_id" name="consultant_id" required>
+        <option value="">Select a consultant...</option>
+        {% for p in profiles %}
+        <option value="{{ p.id }}">{{ p.name }}</option>
+        {% endfor %}
+      </select>
+      {% if not profiles %}
+      <p class="form-hint"><a href="/profile/new">Add a consultant profile first</a></p>
+      {% endif %}
+    </div>
+
+    <div class="form-group">
+      <label for="company_name">Client / Company Name</label>
+      <input type="text" id="company_name" name="company_name"
+        placeholder="e.g. Acme Bank" required>
+    </div>
+
+    <div class="form-group">
+      <label for="client_brief">Client Brief</label>
+      <textarea id="client_brief" name="client_brief" rows="10"
+        placeholder="Paste the client brief here. Include project description, required skills, challenges, timeline, and any other relevant context."></textarea>
+      <p class="form-hint">The more detail, the better the match. Include tech stack, industry context, and what success looks like.</p>
+    </div>
+
+    <div class="pipeline-preview">
+      <h3>What will happen:</h3>
+      <ol class="pipeline-steps">
+        <li><span class="step-parallel">Parallel</span> Profile Agent + Client Research Agent analyze input</li>
+        <li>Matching Agent creates a relevance map</li>
+        <li><span class="step-parallel">Parallel</span> Writer Agent + Gap Agent generate artifacts</li>
+        <li>Your proposal package is ready. Twin session link is created.</li>
+      </ol>
+    </div>
+
+    <div class="form-actions">
+      <a href="/" class="btn-secondary">Cancel</a>
+      <button type="submit" class="btn-primary" id="submit-btn">
+        Generate Proposal Package
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+// Pre-fill from demo seed if available
+window.addEventListener('DOMContentLoaded', () => {
+  const profileId = sessionStorage.getItem('demo_profile_id');
+  const companyName = sessionStorage.getItem('demo_company_name');
+  const clientBrief = sessionStorage.getItem('demo_client_brief');
+
+  if (profileId) document.getElementById('consultant_id').value = profileId;
+  if (companyName) document.getElementById('company_name').value = companyName;
+  if (clientBrief) document.getElementById('client_brief').value = clientBrief;
+});
+
+document.getElementById('proposal-form').addEventListener('submit', () => {
+  const btn = document.getElementById('submit-btn');
+  btn.textContent = 'Running pipeline... (this takes ~60s)';
+  btn.disabled = true;
+});
+</script>
+{% endblock %}

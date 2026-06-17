@@ -1,0 +1,98 @@
+# PitchTwin
+**Your CV, came to life.**
+
+A multi-agent AI system for technology consulting firms. Takes a consultant's profile and a client brief → produces a tailored proposal package + an interactive pre-meeting twin experience for the client.
+
+---
+
+## Quick Start (Docker)
+
+```bash
+cp .env.example .env
+# Edit .env — add your GEMINI_API_KEY or GROQ_API_KEY
+docker-compose up --build
+```
+
+Open http://localhost:5000
+
+---
+
+## Quick Start (Local)
+
+```bash
+pip install -r requirements.txt
+cp .env.example .env
+# Edit .env with your API key
+python app.py
+```
+
+---
+
+## Demo Flow
+
+1. Open http://localhost:5000
+2. Click **Load sample profile & brief** in the demo banner
+3. Click the link → **Create proposal for NovaPay Financial**
+4. Hit **Generate Proposal Package** — wait ~60s
+5. View the tailored CV, bio, talking points, and gap analysis
+6. Click **Open Client Twin Link** → copy and open in a new tab
+7. Have a conversation as the client
+8. Click **End conversation** → debrief is generated
+9. Back on the proposal page → click **View Debrief**
+
+---
+
+## Architecture
+
+```
+Profile Agent ──┐
+                ├─ (parallel) ─► Matching Agent ─► Writer Agent ─► Proposal Package
+Client Research ┘                               └─► Gap Agent ──┘
+
+Persona Agent ─► Interactive twin (one call per client message)
+Debrief Agent ─► Fires on session end → report for consultant
+```
+
+See `spec/spec.arch` for the full blueprint.
+
+---
+
+## Configuration
+
+| Variable | Description |
+|---|---|
+| `GEMINI_API_KEY` | Google Gemini API key (primary) |
+| `GROQ_API_KEY` | Groq API key (fallback) |
+| `LLM_PROVIDER` | `gemini` or `groq` (default: `gemini`) |
+| `FLASK_SECRET_KEY` | Flask session secret |
+| `FLASK_DEBUG` | `1` for debug mode |
+| `DB_PATH` | SQLite path (default: `data/pitchtwin.db`) |
+
+---
+
+## Running Tests
+
+```bash
+python tests/test_agents.py
+```
+
+Tests use a mock LLM client — no API calls required.
+
+---
+
+## Project Structure
+
+```
+pitchtwin/
+├── app.py               # Flask routes
+├── orchestrator.py      # Pipeline runner + threading
+├── llm_client.py        # Gemini/Groq wrapper
+├── db.py                # SQLite layer
+├── models.py            # Dataclasses
+├── agents/              # 7 specialized agents
+├── templates/           # Flask Jinja2 templates
+├── static/css/          # Minimal CSS
+├── data/                # Seed data + SQLite DB
+├── spec/                # spec.plan, spec.tasks, spec.arch
+└── tests/               # Agent unit tests
+```

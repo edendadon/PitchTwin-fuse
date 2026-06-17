@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% block title %}Proposal — {{ proposal.company_name }} — PitchTwin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Proposal: {{ proposal.company_name }}</h1>
+    {% if profile %}<p class="page-subtitle">Consultant: <strong>{{ profile.name }}</strong></p>{% endif %}
+  </div>
+  {% if twin_session %}
+  <div class="header-actions">
+    <a href="/twin/{{ twin_session.id }}" class="btn-twin" target="_blank">
+      Open Client Twin Link
+    </a>
+    <a href="/debrief/{{ proposal.id }}" class="btn-secondary">View Debrief</a>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Twin link for sharing -->
+{% if twin_session %}
+<div class="share-card">
+  <strong>Client Link:</strong>
+  <code id="twin-link">{{ request.host_url }}twin/{{ twin_session.id }}</code>
+  <button onclick="copyLink()" class="btn-copy">Copy</button>
+  <span class="share-hint">Share this link with the client for their pre-meeting conversation.</span>
+</div>
+{% endif %}
+
+<!-- Tabs -->
+<div class="tabs">
+  <button class="tab active" onclick="showTab('cv')">Tailored CV</button>
+  <button class="tab" onclick="showTab('bio')">Bio</button>
+  <button class="tab" onclick="showTab('talking')">Talking Points</button>
+  <button class="tab" onclick="showTab('gap')">Gap Analysis</button>
+</div>
+
+<!-- CV Tab -->
+<div id="tab-cv" class="tab-content active">
+  <div class="artifact-card">
+    <div class="artifact-header">
+      <h2>Tailored CV</h2>
+      <button onclick="copyText('cv-content')" class="btn-copy">Copy</button>
+    </div>
+    <div id="cv-content" class="artifact-body markdown-content">
+      {{ proposal.tailored_cv | replace('\n', '<br>') | safe }}
+    </div>
+  </div>
+</div>
+
+<!-- Bio Tab -->
+<div id="tab-bio" class="tab-content hidden">
+  <div class="artifact-card">
+    <div class="artifact-header">
+      <h2>Personalized Bio</h2>
+      <button onclick="copyText('bio-content')" class="btn-copy">Copy</button>
+    </div>
+    <div id="bio-content" class="artifact-body">
+      {{ proposal.bio | replace('\n', '<br>') | safe }}
+    </div>
+  </div>
+</div>
+
+<!-- Talking Points Tab -->
+<div id="tab-talking" class="tab-content hidden">
+  <div class="artifact-card">
+    <div class="artifact-header">
+      <h2>Talking Points</h2>
+    </div>
+    <div class="artifact-body">
+      {% if proposal.talking_points %}
+      <ol class="talking-points-list">
+        {% for point in proposal.talking_points %}
+        <li class="talking-point">{{ point }}</li>
+        {% endfor %}
+      </ol>
+      {% else %}
+      <p class="empty-state">No talking points generated.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Gap Analysis Tab -->
+<div id="tab-gap" class="tab-content hidden">
+  <div class="artifact-card">
+    <div class="artifact-header">
+      <h2>Gap Analysis</h2>
+    </div>
+    <div class="artifact-body">
+      {% if gap_data %}
+
+        {% if gap_data.get('overall_fit_summary') %}
+        <div class="fit-summary">
+          <strong>Overall Fit Score: {{ gap_data.get('overall_fit_score', 'N/A') }}/10</strong>
+          <p>{{ gap_data.get('overall_fit_summary') }}</p>
+        </div>
+        {% endif %}
+
+        {% if gap_data.get('strengths_to_lead_with') %}
+        <div class="gap-section">
+          <h3>Lead With These Strengths</h3>
+          <ul>
+            {% for s in gap_data.get('strengths_to_lead_with', []) %}
+            <li>{{ s }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+
+        {% if gap_data.get('gaps') %}
+        <div class="gap-section">
+          <h3>Identified Gaps</h3>
+          {% for gap in gap_data.get('gaps', []) %}
+          <div class="gap-item gap-severity-{{ gap.get('severity', 'low') }}">
+            <div class="gap-header">
+              <span class="gap-requirement">{{ gap.get('requirement') }}</span>
+              <span class="gap-badge">{{ gap.get('severity', 'low') }}</span>
+            </div>
+            <p>{{ gap.get('description') }}</p>
+            <p><strong>Framing:</strong> {{ gap.get('framing_suggestion') }}</p>
+            {% if gap.get('mitigation') %}
+            <p><strong>Mitigation:</strong> {{ gap.get('mitigation') }}</p>
+            {% endif %}
+          </div>
+          {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if gap_data.get('raw') %}
+        <pre class="raw-output">{{ gap_data.get('raw') }}</pre>
+        {% endif %}
+
+      {% else %}
+      <p class="empty-state">No gap analysis available.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<script>
+function showTab(name) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.remove('hidden');
+  event.target.classList.add('active');
+}
+
+function copyText(id) {
+  const text = document.getElementById(id).innerText;
+  navigator.clipboard.writeText(text).then(() => alert('Copied!'));
+}
+
+function copyLink() {
+  const link = document.getElementById('twin-link').innerText;
+  navigator.clipboard.writeText(link).then(() => alert('Link copied!'));
+}
+</script>
+{% endblock %}

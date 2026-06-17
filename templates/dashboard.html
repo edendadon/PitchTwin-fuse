@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — PitchTwin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Dashboard</h1>
+  <div class="header-actions">
+    <a href="/profile/new" class="btn-secondary">Add Consultant</a>
+    <a href="/proposal/new" class="btn-primary">New Proposal</a>
+  </div>
+</div>
+
+<!-- Demo quick-start -->
+<div class="demo-banner">
+  <span>Quick demo:</span>
+  <button id="seed-btn" class="btn-demo" onclick="seedDemo()">Load sample profile &amp; brief</button>
+  <span id="seed-status"></span>
+</div>
+
+<!-- Consultants -->
+<section class="section">
+  <h2>Consultant Profiles <span class="count">({{ profiles|length }})</span></h2>
+  {% if profiles %}
+  <div class="card-grid">
+    {% for p in profiles %}
+    <div class="card">
+      <div class="card-title">{{ p.name }}</div>
+      <div class="card-meta">Added {{ p.created_at[:10] }}</div>
+      {% if p.structured %}
+      <div class="card-tags">
+        {% for skill in (p.structured.get('skills', [])[:4]) %}
+        <span class="tag">{{ skill }}</span>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="empty-state">No consultant profiles yet. <a href="/profile/new">Add one</a> or use the demo loader above.</p>
+  {% endif %}
+</section>
+
+<!-- Proposals -->
+<section class="section">
+  <h2>Recent Proposals <span class="count">({{ proposals|length }})</span></h2>
+  {% if proposals %}
+  <table class="proposals-table">
+    <thead>
+      <tr>
+        <th>Consultant</th>
+        <th>Client</th>
+        <th>Status</th>
+        <th>Created</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for prop in proposals %}
+      <tr>
+        <td>{{ profile_map.get(prop.consultant_id, 'Unknown') }}</td>
+        <td>{{ prop.company_name }}</td>
+        <td><span class="status-badge status-{{ prop.status }}">{{ prop.status }}</span></td>
+        <td>{{ prop.created_at[:10] }}</td>
+        <td>
+          <a href="/proposal/{{ prop.id }}" class="link-action">View Proposal</a>
+          &middot;
+          <a href="/debrief/{{ prop.id }}" class="link-action">Debrief</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="empty-state">No proposals yet. <a href="/proposal/new">Create one</a>.</p>
+  {% endif %}
+</section>
+
+<script>
+async function seedDemo() {
+  const btn = document.getElementById('seed-btn');
+  const status = document.getElementById('seed-status');
+  btn.disabled = true;
+  status.textContent = 'Loading...';
+
+  const res = await fetch('/demo/seed', { method: 'POST' });
+  const data = await res.json();
+
+  if (data.error) {
+    status.textContent = 'Error: ' + data.error;
+    btn.disabled = false;
+    return;
+  }
+
+  status.innerHTML = `Profile loaded: <strong>${data.profile_name}</strong>. 
+    <a href="/proposal/new">Create proposal for ${data.company_name} →</a>`;
+
+  // Pre-fill new proposal form via sessionStorage
+  sessionStorage.setItem('demo_profile_id', data.profile_id);
+  sessionStorage.setItem('demo_company_name', data.company_name);
+  sessionStorage.setItem('demo_client_brief', data.client_brief);
+}
+</script>
+{% endblock %}

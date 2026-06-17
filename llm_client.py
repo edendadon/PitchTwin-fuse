@@ -1,0 +1,114 @@
+"""
+LLM Client — wraps Gemini, Groq, and LiteLLM proxy.
+All agents call this; swap provider via LLM_PROVIDER env var.
+"""
+
+import os
+import time
+import json
+from dotenv import load_dotenv
+
+load_dotenv()
+
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "litellm")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
+LITELLM_API_KEY = os.getenv("LITELLM_API_KEY", "")
+LITELLM_BASE_URL = os.getenv("LITELLM_BASE_URL", "https://litellm.tikalk.dev/v1")
+LITELLM_MODEL = os.getenv("LITELLM_MODEL", "kimi-k2.5")
+
+
+class LLMClient:
+    def __init__(self, provider: str = None):
+        self.provider = provider or LLM_PROVIDER
+        self._init_client()
+
+    def _init_client(self):
+        if self.provider == "gemini":
+            import google.genai as genai
+            self._gemini_client = genai.Client(api_key=GEMINI_API_KEY)
+        elif self.provider == "groq":
+            from groq import Groq
+            self._groq_client = Groq(api_key=GROQ_API_KEY)
+        elif self.provider == "litellm":
+            from openai import OpenAI
+            self._litellm_client = OpenAI(
+                api_key=LITELLM_API_KEY,
+                base_url=LITELLM_BASE_URL
+            )
+
+    def call(self, system_prompt: str, user_message: str, retries: int = 3) -> str:
+        """
+        Call LLM with system prompt + user message.
+        Returns raw string response.
+        Retries up to `retries` times with exponential backoff.
+        """
+        last_error = None
+        for attempt in range(retries):
+            try:
+                if self.provider == "gemini":
+                    return self._call_gemini(system_prompt, user_message)
+                elif self.provider == "groq":
+                    return self._call_groq(system_prompt, user_message)
+                elif self.provider == "litellm":
+                    return self._call_litellm(system_prompt, user_message)
+                else:
+                    raise ValueError(f"Unknown provider: {self.provider}")
+            except Exception as e:
+                last_error = e
+                wait = 2 ** attempt
+                print(f"[LLMClient] Attempt {attempt + 1} failed: {e}. Retrying in {wait}s...")
+                time.sleep(wait)
+        raise RuntimeError(f"LLM call failed after {retries} attempts: {last_error}")
+
+    def _call_gemini(self, system_prompt: str, user_message: str) -> str:
+        import google.genai.types as types
+        response = self._gemini_client.models.generate_content(
+            model="gemini-2.0-flash",
+            contents=user_message,
+            config=types.GenerateContentConfig(
+                system_instruction=system_prompt,
+            )
+        )
+        return response.text
+
+    def _call_groq(self, system_prompt: str, user_message: str) -> str:
+        response = self._groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message},
+            ],
+        )
+        return response.choices[0].message.content
+
+    def _call_litellm(self, system_prompt: str, user_message: str) -> str:
+        response = self._litellm_client.chat.completions.create(
+            model=LITELLM_MODEL,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message},
+            ],
+        )
+        return response.choices[0].message.content
+
+    def call_json(self, system_prompt: str, user_message: str) -> dict:
+        """
+        Call LLM and parse JSON response.
+        System prompt should instruct the model to respond with valid JSON only.
+        """
+        raw = self.call(system_prompt, user_message)
+        # Strip markdown code fences if present
+        raw = raw.strip()
+        if raw.startswith("```"):
+            lines = raw.split("\n")
+            raw = "\n".join(lines[1:-1]) if lines[-1] == "```" else "\n".join(lines[1:])
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError:
+            # Last resort: try to extract JSON from the response
+            import re
+            match = re.search(r'\{.*\}', raw, re.DOTALL)
+            if match:
+                return json.loads(match.group())
+            raise ValueError(f"Could not parse JSON from LLM response: {raw[:200]}")

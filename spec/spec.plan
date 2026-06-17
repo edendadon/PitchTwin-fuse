@@ -1,0 +1,144 @@
+# spec.plan — PitchTwin
+
+## Project Identity
+- **Name**: PitchTwin
+- **Tagline**: Your CV, came to life.
+- **Type**: Multi-agent AI system
+- **Target**: Technology consulting firms
+
+---
+
+## Problem Statement
+Consultants at tech firms must tailor their CVs, bios, and talking points for every client pitch. This is done manually, under deadline pressure, leading to:
+- Inconsistent output quality
+- Wasted senior talent time
+- Poor client first impressions
+
+---
+
+## Solution
+PitchTwin automates the entire pitch preparation and pre-meeting experience via a 7-agent pipeline:
+
+1. **Proposal Package Generation** — Tailored CV, bio, talking points, gap analysis
+2. **Interactive Client Twin** — A text-based conversational agent representing the consultant, grounded strictly in real profile data
+3. **Consultant Debrief** — Auto-generated summary of what the client asked and cared about, delivered before the first real meeting
+
+---
+
+## Core User Flows
+
+### Flow A: BD Manager / Consultant triggers a new proposal
+1. Login to consultant dashboard
+2. Select or upload consultant profile
+3. Paste client brief + company name
+4. System runs pipeline → delivers proposal package in <5 min
+
+### Flow B: Client interacts with the twin
+1. Receives unique link
+2. Opens chat interface in browser
+3. Asks free-form questions about consultant
+4. Twin responds grounded in real profile data only
+
+### Flow C: Debrief delivery
+1. Client ends session (or closes browser)
+2. Debrief Agent auto-triggers on transcript
+3. Summary report sent to consultant dashboard
+
+---
+
+## Agent Roster
+
+| Agent | Role | Input | Output |
+|---|---|---|---|
+| Profile Agent | Parse + structure consultant profile | Raw profile (text/JSON) | Structured skills, experience, projects |
+| Client Research Agent | Analyze client brief | Brief + company name | Industry context, challenges, tech stack |
+| Matching Agent | Rank relevance | Profile data + client context | Ranked relevance map |
+| Writer Agent | Generate proposal artifacts | Relevance map + client tone | Tailored CV, bio, talking points |
+| Gap Agent | Identify mismatches | Client requirements + profile | Gap list + framing suggestions |
+| Persona Agent | Build conversational twin | Full profile + matched experience | LLM-powered chat twin |
+| Debrief Agent | Summarize client conversation | Chat transcript | Structured debrief report |
+
+### Orchestration Rules
+- **Parallel**: Profile Agent + Client Research Agent run concurrently (Python threading)
+- **Sequential**: Matching → Writer → Gap → (package delivered); Persona Agent initialized after matching
+- **Trigger**: Debrief Agent fires on session end event
+
+---
+
+## Data Model
+
+### consultant_profile
+```json
+{
+  "id": "uuid",
+  "name": "string",
+  "raw_profile": "text",
+  "structured": {
+    "skills": [],
+    "experience": [],
+    "projects": []
+  },
+  "tone_markers": "string",
+  "created_at": "timestamp"
+}
+```
+
+### proposal
+```json
+{
+  "id": "uuid",
+  "consultant_id": "uuid",
+  "client_brief": "text",
+  "company_name": "string",
+  "tailored_cv": "text",
+  "bio": "text",
+  "talking_points": [],
+  "gap_analysis": "text",
+  "relevance_map": "object",
+  "status": "pending|ready",
+  "created_at": "timestamp"
+}
+```
+
+### twin_session
+```json
+{
+  "id": "uuid",
+  "proposal_id": "uuid",
+  "transcript": [],
+  "debrief": "text",
+  "status": "active|ended",
+  "created_at": "timestamp"
+}
+```
+
+---
+
+## Tech Stack
+
+| Layer | Choice | Reason |
+|---|---|---|
+| Language | Python 3.11 | Team familiarity, rich AI libs |
+| Web Framework | Flask | Lightweight, fast to wire up |
+| LLM | Google Gemini API (gemini-1.5-flash) | Free tier, strong quality |
+| LLM Alt | Groq + Llama 3 | Faster inference, also free |
+| Orchestration | Python asyncio + threading | No extra framework needed |
+| Storage | SQLite (prod) / JSON files (dev) | Zero-config, portable |
+| Frontend | Flask Jinja2 templates + plain CSS | Minimal, shippable fast |
+| Deployment | Docker + docker-compose | Reproducible, simple |
+
+---
+
+## Non-Goals (v1)
+- No audio/video
+- No authentication system (token-based link sharing only)
+- No real-time streaming (polling acceptable)
+- No external email sending (debrief shown in dashboard)
+
+---
+
+## Success Criteria
+- End-to-end happy path runs in <5 min
+- Client twin refuses to invent experience not in profile
+- Debrief fires automatically on session end
+- System runs fully in Docker with single `docker-compose up`

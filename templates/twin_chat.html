@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meet {{ profile.name if profile else 'Your Consultant' }} — PitchTwin Twin</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    body { background: #f0f4f8; }
+    .twin-wrapper { max-width: 720px; margin: 0 auto; padding: 24px 16px; }
+    .twin-header { text-align: center; padding: 32px 0 16px; }
+    .twin-avatar { width: 72px; height: 72px; border-radius: 50%; background: #1a1a2e; 
+                   display: flex; align-items: center; justify-content: center; 
+                   font-size: 28px; color: white; margin: 0 auto 12px; }
+    .twin-name { font-size: 22px; font-weight: 700; color: #1a1a2e; }
+    .twin-desc { color: #6b7280; font-size: 14px; margin-top: 6px; max-width: 400px; margin-left: auto; margin-right: auto; }
+    .chat-box { background: white; border-radius: 16px; box-shadow: 0 2px 16px rgba(0,0,0,0.08); 
+                min-height: 400px; max-height: 520px; overflow-y: auto; padding: 20px; 
+                display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; }
+    .message { max-width: 80%; padding: 12px 16px; border-radius: 12px; line-height: 1.5; font-size: 15px; }
+    .message.user { align-self: flex-end; background: #1a1a2e; color: white; border-bottom-right-radius: 4px; }
+    .message.assistant { align-self: flex-start; background: #f3f4f6; color: #1a1a2e; border-bottom-left-radius: 4px; }
+    .message.system { align-self: center; background: #fef3c7; color: #92400e; font-size: 13px; border-radius: 8px; }
+    .input-row { display: flex; gap: 8px; }
+    .chat-input { flex: 1; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 12px; 
+                  font-size: 15px; outline: none; }
+    .chat-input:focus { border-color: #1a1a2e; }
+    .send-btn { padding: 12px 20px; background: #1a1a2e; color: white; border: none; 
+                border-radius: 12px; cursor: pointer; font-size: 15px; font-weight: 600; }
+    .send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .end-session-row { text-align: center; margin-top: 16px; }
+    .end-btn { background: none; border: 1px solid #d1d5db; color: #6b7280; padding: 8px 20px; 
+               border-radius: 8px; cursor: pointer; font-size: 13px; }
+    .end-btn:hover { border-color: #ef4444; color: #ef4444; }
+    .ended-banner { text-align: center; padding: 16px; background: #fef3c7; border-radius: 12px; 
+                    margin-top: 12px; color: #92400e; }
+    .typing { color: #9ca3af; font-style: italic; font-size: 13px; padding: 0 4px; }
+  </style>
+</head>
+<body>
+<div class="twin-wrapper">
+  <div class="twin-header">
+    <div class="twin-avatar">{{ profile.name[0] if profile else '?' }}</div>
+    <div class="twin-name">{{ profile.name if profile else 'PitchTwin' }}</div>
+    <div class="twin-desc">
+      Ask me anything about my experience, approach, and past projects.<br>
+      I'm a digital twin — I only speak to what I've actually done.
+    </div>
+  </div>
+
+  <div class="chat-box" id="chat-box">
+    <div class="message assistant">
+      Hi! I'm {{ profile.name if profile else 'your consultant' }}'s digital twin.
+      Feel free to ask me about my background, the kind of work I've done, my approach to projects, or anything you'd want to know before we meet.
+    </div>
+  </div>
+
+  {% if session.status != 'ended' %}
+  <div class="input-row">
+    <input type="text" id="chat-input" class="chat-input"
+      placeholder="Ask about experience, skills, past projects..."
+      onkeydown="if(event.key==='Enter') sendMessage()">
+    <button class="send-btn" id="send-btn" onclick="sendMessage()">Send</button>
+  </div>
+  <div class="end-session-row">
+    <button class="end-btn" onclick="endSession()">End conversation</button>
+  </div>
+  {% else %}
+  <div class="ended-banner">
+    This conversation has ended. Thank you for your time!
+  </div>
+  {% endif %}
+</div>
+
+<script>
+const SESSION_ID = "{{ session.id }}";
+const chatBox = document.getElementById('chat-box');
+
+function addMessage(role, text) {
+  const div = document.createElement('div');
+  div.className = 'message ' + role;
+  div.textContent = text;
+  chatBox.appendChild(div);
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+function addTyping() {
+  const div = document.createElement('div');
+  div.className = 'typing';
+  div.id = 'typing-indicator';
+  div.textContent = 'Thinking...';
+  chatBox.appendChild(div);
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+function removeTyping() {
+  const t = document.getElementById('typing-indicator');
+  if (t) t.remove();
+}
+
+async function sendMessage() {
+  const input = document.getElementById('chat-input');
+  const btn = document.getElementById('send-btn');
+  const text = input.value.trim();
+  if (!text) return;
+
+  addMessage('user', text);
+  input.value = '';
+  btn.disabled = true;
+  addTyping();
+
+  try {
+    const res = await fetch(`/twin/${SESSION_ID}/message`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: text })
+    });
+    const data = await res.json();
+    removeTyping();
+    if (data.error) {
+      addMessage('system', 'Error: ' + data.error);
+    } else {
+      addMessage('assistant', data.response);
+    }
+  } catch (e) {
+    removeTyping();
+    addMessage('system', 'Connection error. Please try again.');
+  } finally {
+    btn.disabled = false;
+    input.focus();
+  }
+}
+
+async function endSession() {
+  if (!confirm('End this conversation? A debrief will be sent to the consultant.')) return;
+
+  await fetch(`/twin/${SESSION_ID}/end`, { method: 'POST' });
+  addMessage('system', 'Conversation ended. Thank you! The consultant has been notified.');
+
+  document.querySelector('.input-row').style.display = 'none';
+  document.querySelector('.end-session-row').style.display = 'none';
+}
+
+// Auto-end session on page unload (catches browser close)
+window.addEventListener('beforeunload', () => {
+  navigator.sendBeacon(`/twin/${SESSION_ID}/end`);
+});
+</script>
+</body>
+</html>

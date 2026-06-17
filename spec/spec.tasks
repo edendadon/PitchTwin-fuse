@@ -1,0 +1,113 @@
+# spec.tasks — PitchTwin
+
+## Task Breakdown by Phase
+
+---
+
+### PHASE 0 — Project Setup
+- [x] T-001: Create directory structure (`agents/`, `templates/`, `static/`, `data/`, `spec/`, `tests/`)
+- [x] T-002: Write `spec.plan`
+- [x] T-003: Write `spec.tasks`
+- [x] T-004: Write `spec.arch`
+- [ ] T-005: Write `requirements.txt`
+- [ ] T-006: Write `Dockerfile` + `docker-compose.yml`
+- [ ] T-007: Write `.env.example`
+
+---
+
+### PHASE 1 — Data Layer
+- [ ] T-101: Implement `db.py` — SQLite init, schema creation
+- [ ] T-102: Implement `models.py` — ConsultantProfile, Proposal, TwinSession dataclasses
+- [ ] T-103: Add JSON seed data for demo consultant profile (`data/sample_profile.json`)
+- [ ] T-104: Add JSON seed data for demo client brief (`data/sample_brief.json`)
+
+---
+
+### PHASE 2 — LLM Client
+- [ ] T-201: Implement `llm_client.py` — wrapper for Gemini API (primary) and Groq (fallback)
+- [ ] T-202: Add `call_llm(system_prompt, user_message)` function
+- [ ] T-203: Add retry logic (3 attempts, exponential backoff)
+- [ ] T-204: Add `.env` config loading (API keys)
+
+---
+
+### PHASE 3 — Agents
+- [ ] T-301: Implement `agents/profile_agent.py` — parse raw profile → structured JSON
+- [ ] T-302: Implement `agents/client_research_agent.py` — brief + company → context JSON
+- [ ] T-303: Implement `agents/matching_agent.py` — profile + context → relevance map
+- [ ] T-304: Implement `agents/writer_agent.py` — relevance map → CV, bio, talking points
+- [ ] T-305: Implement `agents/gap_agent.py` — requirements + profile → gap analysis
+- [ ] T-306: Implement `agents/persona_agent.py` — profile + matches → chat response function
+- [ ] T-307: Implement `agents/debrief_agent.py` — transcript → debrief report
+
+---
+
+### PHASE 4 — Orchestrator
+- [ ] T-401: Implement `orchestrator.py` — `run_proposal_pipeline(consultant_id, brief, company)`
+- [ ] T-402: Run Profile Agent + Client Research Agent in parallel (threading)
+- [ ] T-403: Chain Matching → Writer → Gap sequentially after parallel phase
+- [ ] T-404: Store all outputs to SQLite
+- [ ] T-405: Return proposal object with all artifacts
+
+---
+
+### PHASE 5 — Flask App
+- [ ] T-501: Implement `app.py` — Flask app factory, route registration
+- [ ] T-502: Route `GET /` — consultant dashboard (list proposals)
+- [ ] T-503: Route `POST /proposal/new` — trigger pipeline, return proposal ID
+- [ ] T-504: Route `GET /proposal/<id>` — view proposal package
+- [ ] T-505: Route `GET /twin/<session_id>` — client twin chat interface
+- [ ] T-506: Route `POST /twin/<session_id>/message` — send message, get twin response
+- [ ] T-507: Route `POST /twin/<session_id>/end` — end session, trigger debrief
+- [ ] T-508: Route `GET /debrief/<proposal_id>` — view debrief report
+
+---
+
+### PHASE 6 — Frontend Templates
+- [ ] T-601: `templates/base.html` — shared layout, minimal CSS
+- [ ] T-602: `templates/dashboard.html` — list proposals, trigger new proposal form
+- [ ] T-603: `templates/proposal.html` — display CV, bio, talking points, gap analysis
+- [ ] T-604: `templates/twin_chat.html` — client-facing chat UI (polling-based)
+- [ ] T-605: `templates/debrief.html` — consultant debrief view
+- [ ] T-606: `static/css/style.css` — clean minimal styling
+
+---
+
+### PHASE 7 — Integration & Demo
+- [ ] T-701: Wire seed data to demo flow (one-click demo trigger)
+- [ ] T-702: Manual end-to-end test: profile → proposal → twin → debrief
+- [ ] T-703: Verify Persona Agent refuses invented facts
+- [ ] T-704: Verify Debrief Agent fires on session end
+- [ ] T-705: Verify full pipeline runs under 5 minutes
+
+---
+
+### PHASE 8 — Docker & Deployment
+- [ ] T-801: Confirm `docker-compose up` starts all services
+- [ ] T-802: Confirm SQLite persists across container restart (volume mount)
+- [ ] T-803: Test demo flow inside Docker
+
+---
+
+## Agent Ownership Map
+
+| Agent | File | Owner |
+|---|---|---|
+| Profile Agent | `agents/profile_agent.py` | — |
+| Client Research Agent | `agents/client_research_agent.py` | — |
+| Matching Agent | `agents/matching_agent.py` | — |
+| Writer Agent | `agents/writer_agent.py` | — |
+| Gap Agent | `agents/gap_agent.py` | — |
+| Persona Agent | `agents/persona_agent.py` | — |
+| Debrief Agent | `agents/debrief_agent.py` | — |
+
+---
+
+## Priority Order for Demo Day
+1. T-201 (LLM client) — everything depends on it
+2. T-301, T-302 (parallel agents) — first handoff
+3. T-303, T-304, T-305 (sequential agents) — proposal package
+4. T-401 (orchestrator) — wires it all
+5. T-501–T-507 (Flask routes) — makes it demoable
+6. T-306, T-307 (twin + debrief) — step 2 and 3
+7. T-601–T-606 (templates) — presentation layer
