@@ -1,0 +1,84 @@
+{
+  "schema_version": "1.0",
+  "presets": {
+    "agentic-sdlc": {
+      "version": "1.5.0",
+      "source": "local",
+      "manifest_hash": "sha256:ff8a51d5da94b78b0e6b88199647ccdd0c293b8fe3c388523b8632111efed3ec",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {
+        "claude": [
+          "spec.specify",
+          "spec.plan",
+          "spec.clarify",
+          "spec.tasks",
+          "spec.checklist",
+          "spec.analyze",
+          "spec.implement",
+          "spec.constitution",
+          "spec.brainstorm",
+          "spec.verify",
+          "spec.trace"
+        ],
+        "opencode": [
+          "spec.specify",
+          "spec.plan",
+          "spec.clarify",
+          "spec.tasks",
+          "spec.checklist",
+          "spec.analyze",
+          "spec.implement",
+          "spec.constitution",
+          "spec.brainstorm",
+          "spec.verify",
+          "spec.trace"
+        ]
+      },
+      "registered_skills": [],
+      "installed_at": "2026-06-23T22:05:20.421556+00:00"
+    },
+    "agentic-change": {
+      "version": "1.1.0",
+      "source": "local",
+      "manifest_hash": "sha256:fef5d47313ac44cb53eceb15445f86300f39077de98d9a72ce67c3cc662e7976",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {
+        "claude": [
+          "change.specify",
+          "change.implement",
+          "change.verify",
+          "change.levelup"
+        ],
+        "opencode": [
+          "change.specify",
+          "change.implement",
+          "change.verify",
+          "change.levelup"
+        ]
+      },
+      "registered_skills": [],
+      "installed_at": "2026-06-23T22:05:20.688694+00:00"
+    },
+    "agentic-quick": {
+      "version": "1.1.0",
+      "source": "local",
+      "manifest_hash": "sha256:55f2c2cd53875d3871a4bbd37e7fffdf29d2fb476d7c13eb4057d2ff17c82165",
+      "enabled": true,
+      "priority": 10,
+      "registered_commands": {
+        "claude": [
+          "quick.implement",
+          "quick.levelup"
+        ],
+        "opencode": [
+          "quick.implement",
+          "quick.levelup"
+        ]
+      },
+      "registered_skills": [],
+      "installed_at": "2026-06-23T22:05:20.838546+00:00"
+    }
+  }
+}

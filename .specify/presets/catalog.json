@@ -1,0 +1,102 @@
+{
+  "schema_version": "1.0",
+  "updated_at": "2026-06-20T00:00:00Z",
+  "catalog_url": "https://raw.githubusercontent.com/github/spec-kit/main/presets/catalog.json",
+  "presets": {
+    "lean": {
+      "name": "Lean Workflow",
+      "id": "lean",
+      "version": "1.0.0",
+      "description": "Minimal core workflow commands - just the prompt, just the artifact",
+      "author": "github",
+      "repository": "https://github.com/github/spec-kit",
+      "license": "MIT",
+      "bundled": true,
+      "preinstall": false,
+      "requires": {
+        "speckit_version": ">=0.6.0"
+      },
+      "provides": {
+        "commands": 5,
+        "templates": 0
+      },
+      "tags": [
+        "lean",
+        "minimal",
+        "workflow",
+        "core"
+      ]
+    },
+    "agentic-sdlc": {
+      "name": "Agentic SDLC",
+      "id": "agentic-sdlc",
+      "version": "1.2.0",
+      "description": "Full Agentic SDLC workflow with architecture, product, and TDD extensions",
+      "author": "Tikal",
+      "repository": "https://github.com/tikalk/agentic-sdlc-spec-kit",
+      "license": "MIT",
+      "bundled": true,
+      "preinstall": true,
+      "requires": {
+        "speckit_version": ">=0.6.0"
+      },
+      "provides": {
+        "commands": 10,
+        "templates": 5
+      },
+      "tags": [
+        "agentic-sdlc",
+        "workflow",
+        "architecture",
+        "product",
+        "tdd"
+      ]
+    },
+    "agentic-change": {
+      "name": "Agentic Change Workflow",
+      "id": "agentic-change",
+      "version": "1.0.0",
+      "description": "Lightweight change proposal workflow with spec + tasks artifacts",
+      "author": "Tikal",
+      "repository": "https://github.com/tikalk/agentic-sdlc-spec-kit",
+      "license": "MIT",
+      "bundled": true,
+      "preinstall": true,
+      "requires": {
+        "speckit_version": ">=0.6.0"
+      },
+      "provides": {
+        "commands": 4,
+        "templates": 0
+      },
+      "tags": [
+        "change",
+        "workflow",
+        "lightweight"
+      ]
+    },
+    "agentic-quick": {
+      "name": "Agentic Quick Workflow",
+      "id": "agentic-quick",
+      "version": "1.0.0",
+      "description": "Session-based ad-hoc task execution with levelup",
+      "author": "Tikal",
+      "repository": "https://github.com/tikalk/agentic-sdlc-spec-kit",
+      "license": "MIT",
+      "bundled": true,
+      "preinstall": true,
+      "requires": {
+        "speckit_version": ">=0.6.0"
+      },
+      "provides": {
+        "commands": 2,
+        "templates": 0
+      },
+      "tags": [
+        "quick",
+        "ad-hoc",
+        "workflow"
+      ]
+    }
+  }
+}

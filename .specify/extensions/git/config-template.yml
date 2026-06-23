@@ -1,0 +1,104 @@
+# Git Branching Workflow Extension Configuration
+# Copied to .specify/extensions/git/git-config.yml on install
+
+# Branch numbering strategy: "sequential" (001, 002, ...) or "timestamp" (YYYYMMDD-HHMMSS)
+branch_numbering: sequential
+
+# Commit message used by `git commit` during repository initialization
+init_commit_message: "[Spec Kit] Initial commit"
+
+# Optional custom feature branch naming.
+#
+# Supported placeholders:
+#   {prefix}    One allowed prefix (for example: feat, fix, docs)
+#   {number}    Sequential feature number using number_padding
+#   {timestamp} Timestamp in YYYYMMDD-HHMMSS format
+#   {issue}     Issue key whose format is controlled by issue_format
+#   {slug}      Kebab-cased feature slug
+#
+# Rules:
+# - template must include {slug}
+# - template must include exactly one of {number} or {timestamp}
+# - if template includes {prefix}, allowed_prefixes must be non-empty
+# - if template includes {issue}, callers must supply --issue / GIT_BRANCH_ISSUE
+# - issue_format: jira -> PROJ-123, numeric -> 1234
+branch_pattern:
+  enabled: false
+  template: "{prefix}/{number}-{issue}-{slug}"
+  allowed_prefixes:
+    - feat
+  number_padding: 3
+  issue_format: jira
+
+# Feature isolation mode. Controls whether `git.feature` creates a normal
+# feature branch (existing behavior) or provisions a feature-level worktree
+# at .worktrees/<feature>/. Valid values: "branch" (default), "worktree".
+#
+# Overridable per-invocation via:
+#   - --worktree / -Worktree (Bash / PowerShell)
+#   - --branch-mode / -BranchMode
+#   - --isolation-mode <branch|worktree> / -IsolationMode <branch|worktree>
+#   - SPECIFY_ISOLATION_MODE environment variable
+isolation_mode: branch
+
+# Worktree layout (only used when isolation_mode = worktree).
+# base_dir is relative to the repo root. manifest_filename is the
+# provenance-tracked file written into each worktree (gitignored by default
+# via `git.setup-ignore`).
+worktrees:
+  base_dir: .worktrees
+  manifest_filename: git.worktree-manifest.json
+
+# Auto-commit before/after core commands.
+# Set "default" to enable for all commands, then override per-command.
+# Each key can be true/false. Message is customizable per-command.
+auto_commit:
+  default: false
+  before_clarify:
+    enabled: false
+    message: "[Spec Kit] Save progress before clarification"
+  before_plan:
+    enabled: false
+    message: "[Spec Kit] Save progress before planning"
+  before_tasks:
+    enabled: false
+    message: "[Spec Kit] Save progress before task generation"
+  before_implement:
+    enabled: false
+    message: "[Spec Kit] Save progress before implementation"
+  before_checklist:
+    enabled: false
+    message: "[Spec Kit] Save progress before checklist"
+  before_analyze:
+    enabled: false
+    message: "[Spec Kit] Save progress before analysis"
+  before_taskstoissues:
+    enabled: false
+    message: "[Spec Kit] Save progress before issue sync"
+  after_constitution:
+    enabled: false
+    message: "[Spec Kit] Add project constitution"
+  after_specify:
+    enabled: false
+    message: "[Spec Kit] Add specification"
+  after_clarify:
+    enabled: false
+    message: "[Spec Kit] Clarify specification"
+  after_plan:
+    enabled: false
+    message: "[Spec Kit] Add implementation plan"
+  after_tasks:
+    enabled: false
+    message: "[Spec Kit] Add tasks"
+  after_implement:
+    enabled: false
+    message: "[Spec Kit] Implementation progress"
+  after_checklist:
+    enabled: false
+    message: "[Spec Kit] Add checklist"
+  after_analyze:
+    enabled: false
+    message: "[Spec Kit] Add analysis report"
+  after_taskstoissues:
+    enabled: false
+    message: "[Spec Kit] Sync tasks to issues"
