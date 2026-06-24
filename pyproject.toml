@@ -1,3 +1,8 @@
+[tool.logfire]
+# Don't warn/raise when logfire.configure() hasn't run (e.g. eval runs and CI,
+# where tracing is intentionally off). Instrumentation simply no-ops.
+ignore_no_config = true
+
 [project]
 name = "pitchtwin-fuse"
 version = "0.1.0"
