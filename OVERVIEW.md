@@ -38,9 +38,10 @@ that supports LiteLLM (default), Google Gemini, and Groq.
 ### Local (Python 3.11+)
 
 ```bash
-pip install -r requirements.txt
+# Install uv if needed: https://docs.astral.sh/uv/getting-started/installation/
+uv sync
 cp .env.example .env          # then add an API key for your chosen provider
-python3 app.py
+uv run python app.py
 ```
 
 Open http://localhost:5000.
