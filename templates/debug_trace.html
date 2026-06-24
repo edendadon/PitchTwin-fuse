@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% block title %}Debug Trace — {{ proposal.company_name }} — PitchTwin{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1>Debug Trace</h1>
+    <p class="page-subtitle">
+      Proposal: <strong>{{ proposal.company_name }}</strong>
+      {% if proposal.trace_id %}<br><code class="trace-id">{{ proposal.trace_id }}</code>{% endif %}
+    </p>
+  </div>
+  <div class="header-actions">
+    <a href="/proposal/{{ proposal.id }}" class="btn-secondary">← Back to Proposal</a>
+  </div>
+</div>
+
+<!-- Status legend -->
+<div class="dag-legend">
+  <span class="legend-item"><span class="swatch node-success"></span> success</span>
+  <span class="legend-item"><span class="swatch node-retry"></span> retry (succeeded after a failure)</span>
+  <span class="legend-item"><span class="swatch node-failure"></span> failure / timeout</span>
+  <span class="legend-item"><span class="swatch node-gate"></span> human_gate</span>
+  <span class="legend-note">human_gate is reserved — the proposal pipeline has no gate node yet.</span>
+</div>
+
+<!-- Totals strip -->
+<div class="trace-totals">
+  <div class="totals-item">
+    <span class="totals-label">Tokens in</span>
+    <span class="totals-value">{{ "{:,}".format(totals.get('prompt_tokens', 0)) }}</span>
+  </div>
+  <div class="totals-item">
+    <span class="totals-label">Tokens out</span>
+    <span class="totals-value">{{ "{:,}".format(totals.get('completion_tokens', 0)) }}</span>
+  </div>
+  <div class="totals-item">
+    <span class="totals-label">Total tokens</span>
+    <span class="totals-value">{{ "{:,}".format(totals.get('total_tokens', 0)) }}</span>
+  </div>
+  <div class="totals-item">
+    <span class="totals-label">Cost</span>
+    <span class="totals-value">${{ "%.4f"|format(totals.get('cost_usd', 0)) }}</span>
+  </div>
+  <div class="totals-item">
+    <span class="totals-label">Duration</span>
+    <span class="totals-value">{{ totals.get('duration_seconds', 0)|round(1) }}s</span>
+  </div>
+</div>
+
+<!-- DAG, grouped into phase columns -->
+{% if nodes %}
+<div class="dag">
+  {% for phase, group in nodes|groupby('phase') %}
+  <div class="dag-phase">
+    <div class="dag-phase-label">Phase {{ phase }}</div>
+    {% for node in group %}
+    <div class="dag-node node-{{ node.status }}">
+      <div class="dag-node-head">
+        <span class="dag-node-name">{{ node.node_id }}</span>
+        <span class="dag-node-status">{{ node.status }}</span>
+      </div>
+      <dl class="dag-node-stats">
+        <div><dt>latency</dt><dd>{% if node.duration_ms is not none %}{{ node.duration_ms }} ms{% else %}—{% endif %}</dd></div>
+        <div><dt>tokens</dt><dd>{{ "{:,}".format(node.prompt_tokens) }} in / {{ "{:,}".format(node.completion_tokens) }} out</dd></div>
+        <div><dt>cost</dt><dd>${{ "%.4f"|format(node.cost_usd) }}</dd></div>
+        <div><dt>calls</dt><dd>{{ node.calls }}</dd></div>
+      </dl>
+      {% if node.guardrail_triggers %}
+      <div class="dag-node-guardrails">
+        {% for g in node.guardrail_triggers %}<span class="guardrail-chip">{{ g }}</span>{% endfor %}
+      </div>
+      {% endif %}
+      {% if node.error %}
+      <p class="dag-node-error">{{ node.error }}</p>
+      {% endif %}
+      {% if node.depends_on %}
+      <p class="dag-node-depends">depends on: {{ node.depends_on|join(', ') }}</p>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<p class="empty-state">No trace events recorded for this proposal.</p>
+{% endif %}
+
+<p class="trace-json-hint">
+  Raw JSON: <a href="/debug/trace/{{ proposal.trace_id }}"><code>/debug/trace/{{ proposal.trace_id }}</code></a>
+</p>
+{% endblock %}

@@ -10,6 +10,8 @@ from dotenv import load_dotenv
 
 import logfire
 
+from token_tracking import CallUsage, estimate_cost
+
 load_dotenv()
 
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "litellm")
@@ -23,7 +25,54 @@ LITELLM_MODEL = os.getenv("LITELLM_MODEL", "kimi-k2.5")
 class LLMClient:
     def __init__(self, provider: str = None):
         self.provider = provider or LLM_PROVIDER
+        # Optional usage aggregator, injected by the orchestrator via
+        # set_tracker(). Duck-typed: record_usage(CallUsage) + record_guardrail(str).
+        # Kept decoupled so the client has no hard dependency on the tracker.
+        self._tracker = None
         self._init_client()
+
+    def set_tracker(self, tracker) -> None:
+        """Attach a usage tracker (UsageTracker-like) to capture tokens/cost."""
+        self._tracker = tracker
+
+    def _emit_usage(self, model: str, response) -> None:
+        """Extract token usage from a provider response and record it.
+
+        Best-effort and guarded: a missing tracker or an unexpected response
+        shape must never break the LLM call. Handles the OpenAI/Groq shape
+        (``response.usage.*``) and the Gemini shape (``response.usage_metadata.*``).
+        """
+        if self._tracker is None:
+            return
+        try:
+            usage = getattr(response, "usage", None)
+            if usage is not None:
+                prompt = getattr(usage, "prompt_tokens", 0) or 0
+                completion = getattr(usage, "completion_tokens", 0) or 0
+                total = getattr(usage, "total_tokens", 0) or (prompt + completion)
+            else:
+                meta = getattr(response, "usage_metadata", None)  # gemini
+                if meta is None:
+                    return
+                prompt = getattr(meta, "prompt_token_count", 0) or 0
+                completion = getattr(meta, "candidates_token_count", 0) or 0
+                total = getattr(meta, "total_token_count", 0) or (prompt + completion)
+            cost = estimate_cost(model, prompt, completion)
+            self._tracker.record_usage(
+                CallUsage(model, prompt, completion, total, cost)
+            )
+        except Exception:
+            # Usage capture is observability, never load-bearing.
+            pass
+
+    def _emit_guardrail(self, kind: str) -> None:
+        """Record a guardrail trigger (e.g. "retry", "json_repair")."""
+        if self._tracker is None:
+            return
+        try:
+            self._tracker.record_guardrail(kind)
+        except Exception:
+            pass
 
     def _init_client(self):
         if self.provider == "gemini":
@@ -66,6 +115,7 @@ class LLMClient:
                     raise ValueError(f"Unknown provider: {self.provider}")
             except Exception as e:
                 last_error = e
+                self._emit_guardrail("retry")
                 wait = 2 ** attempt
                 print(f"[LLMClient] Attempt {attempt + 1} failed: {e}. Retrying in {wait}s...")
                 time.sleep(wait)
@@ -80,6 +130,7 @@ class LLMClient:
                 system_instruction=system_prompt,
             )
         )
+        self._emit_usage("gemini-2.0-flash", response)
         return response.text
 
     def _call_groq(self, system_prompt: str, user_message: str) -> str:
@@ -92,6 +143,7 @@ class LLMClient:
                     {"role": "user", "content": user_message},
                 ],
             )
+        self._emit_usage(model, response)
         return response.choices[0].message.content
 
     def _call_litellm(self, system_prompt: str, user_message: str) -> str:
@@ -102,6 +154,7 @@ class LLMClient:
                 {"role": "user", "content": user_message},
             ],
         )
+        self._emit_usage(LITELLM_MODEL, response)
         return response.choices[0].message.content
 
     def call_stream(self, system_prompt: str, user_message: str):
@@ -176,12 +229,14 @@ class LLMClient:
         # Strip markdown code fences if present
         raw = raw.strip()
         if raw.startswith("```"):
+            self._emit_guardrail("json_repair")
             lines = raw.split("\n")
             raw = "\n".join(lines[1:-1]) if lines[-1] == "```" else "\n".join(lines[1:])
         try:
             return json.loads(raw)
         except json.JSONDecodeError:
             # Last resort: try to extract JSON from the response
+            self._emit_guardrail("json_repair")
             import re
             match = re.search(r'\{.*\}', raw, re.DOTALL)
             if match:
