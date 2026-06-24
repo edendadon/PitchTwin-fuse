@@ -1,0 +1,36 @@
+{
+  "id": "short_conversation",
+  "agent": "debrief",
+  "description": "Two-turn availability check.",
+  "tags": [
+    "happy"
+  ],
+  "source": {
+    "transcript": [
+      {
+        "role": "user",
+        "content": "Are you available in Q3?",
+        "timestamp": "2026-01-01T12:00:00"
+      },
+      {
+        "role": "assistant",
+        "content": "Yes, I am.",
+        "timestamp": "2026-01-01T12:00:03"
+      }
+    ]
+  },
+  "input": {
+    "transcript": [
+      {
+        "role": "user",
+        "content": "Are you available in Q3?",
+        "timestamp": "2026-01-01T12:00:00"
+      },
+      {
+        "role": "assistant",
+        "content": "Yes, I am.",
+        "timestamp": "2026-01-01T12:00:03"
+      }
+    ]
+  }
+}

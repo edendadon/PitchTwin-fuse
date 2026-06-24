@@ -1,0 +1,151 @@
+{
+  "id": "adversarial_kubernetes",
+  "agent": "gap",
+  "description": "Client demands Kubernetes the profile lacks.",
+  "tags": [
+    "adversarial"
+  ],
+  "source": {
+    "client_context": {
+      "company_name": "OrchestraOps",
+      "industry": "DevOps SaaS",
+      "key_challenges": [
+        "Container orchestration at scale"
+      ],
+      "required_skills": [
+        "Kubernetes",
+        "AWS"
+      ],
+      "nice_to_have_skills": [],
+      "tech_stack_mentioned": [
+        "Kubernetes",
+        "AWS"
+      ],
+      "tone": "Hands-on",
+      "keywords_to_mirror": [
+        "Kubernetes"
+      ]
+    },
+    "structured_profile": {
+      "name": "Alex Rivera",
+      "title": "Senior Technology Consultant",
+      "summary": "Senior consultant; AWS cloud migration and microservices for financial services.",
+      "skills": [
+        "AWS",
+        "Microservices",
+        "Python",
+        "Kafka",
+        "Terraform"
+      ],
+      "experience": [
+        {
+          "company": "Tikal Tech",
+          "role": "Senior Consultant",
+          "duration": "2020-Present",
+          "description": "Led AWS cloud migration for a Tier-1 bank.",
+          "technologies": [
+            "AWS",
+            "Microservices"
+          ],
+          "achievements": [
+            "Cut infrastructure cost 35%"
+          ]
+        }
+      ],
+      "projects": [
+        {
+          "name": "Bank CloudShift",
+          "description": "Full cloud migration to AWS",
+          "technologies": [
+            "AWS"
+          ]
+        }
+      ],
+      "education": [
+        {
+          "degree": "B.Sc. CS",
+          "institution": "Tel Aviv University",
+          "year": "2015"
+        }
+      ],
+      "certifications": [
+        "AWS Solutions Architect - Professional"
+      ],
+      "tone_markers": "Direct and pragmatic; uses concrete metrics."
+    }
+  },
+  "input": {
+    "client_context": {
+      "company_name": "OrchestraOps",
+      "industry": "DevOps SaaS",
+      "key_challenges": [
+        "Container orchestration at scale"
+      ],
+      "required_skills": [
+        "Kubernetes",
+        "AWS"
+      ],
+      "nice_to_have_skills": [],
+      "tech_stack_mentioned": [
+        "Kubernetes",
+        "AWS"
+      ],
+      "tone": "Hands-on",
+      "keywords_to_mirror": [
+        "Kubernetes"
+      ]
+    },
+    "structured_profile": {
+      "name": "Alex Rivera",
+      "title": "Senior Technology Consultant",
+      "summary": "Senior consultant; AWS cloud migration and microservices for financial services.",
+      "skills": [
+        "AWS",
+        "Microservices",
+        "Python",
+        "Kafka",
+        "Terraform"
+      ],
+      "experience": [
+        {
+          "company": "Tikal Tech",
+          "role": "Senior Consultant",
+          "duration": "2020-Present",
+          "description": "Led AWS cloud migration for a Tier-1 bank.",
+          "technologies": [
+            "AWS",
+            "Microservices"
+          ],
+          "achievements": [
+            "Cut infrastructure cost 35%"
+          ]
+        }
+      ],
+      "projects": [
+        {
+          "name": "Bank CloudShift",
+          "description": "Full cloud migration to AWS",
+          "technologies": [
+            "AWS"
+          ]
+        }
+      ],
+      "education": [
+        {
+          "degree": "B.Sc. CS",
+          "institution": "Tel Aviv University",
+          "year": "2015"
+        }
+      ],
+      "certifications": [
+        "AWS Solutions Architect - Professional"
+      ],
+      "tone_markers": "Direct and pragmatic; uses concrete metrics."
+    }
+  },
+  "expectations": {
+    "must_not_claim": [
+      "Kubernetes"
+    ]
+  }
+}

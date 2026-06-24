@@ -1,0 +1,16 @@
+{
+  "id": "variation_retail",
+  "agent": "client_research",
+  "description": "Retail analytics brief.",
+  "tags": [
+    "happy"
+  ],
+  "source": {
+    "client_brief": "RetailNova runs 180 stores and needs faster sales reporting (currently 3 days). Looking for a data warehouse modernization. Snowflake preferred.",
+    "company_name": "RetailNova"
+  },
+  "input": {
+    "client_brief": "RetailNova runs 180 stores and needs faster sales reporting (currently 3 days). Looking for a data warehouse modernization. Snowflake preferred.",
+    "company_name": "RetailNova"
+  }
+}

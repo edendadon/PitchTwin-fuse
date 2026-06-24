@@ -1,0 +1,14 @@
+{
+  "id": "edge_oneline",
+  "agent": "profile",
+  "description": "Minimal one-line profile.",
+  "tags": [
+    "edge"
+  ],
+  "source": {
+    "raw_profile": "Jordan Kim \u2014 Python developer."
+  },
+  "input": {
+    "raw_profile": "Jordan Kim \u2014 Python developer."
+  }
+}

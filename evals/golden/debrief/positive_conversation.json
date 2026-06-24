@@ -1,0 +1,36 @@
+{
+  "id": "positive_conversation",
+  "agent": "debrief",
+  "description": "Strong positive signal.",
+  "tags": [
+    "happy"
+  ],
+  "source": {
+    "transcript": [
+      {
+        "role": "user",
+        "content": "Your bank migration is exactly what we need!",
+        "timestamp": "2026-01-01T13:00:00"
+      },
+      {
+        "role": "assistant",
+        "content": "Glad it resonates \u2014 happy to detail the approach.",
+        "timestamp": "2026-01-01T13:00:05"
+      }
+    ]
+  },
+  "input": {
+    "transcript": [
+      {
+        "role": "user",
+        "content": "Your bank migration is exactly what we need!",
+        "timestamp": "2026-01-01T13:00:00"
+      },
+      {
+        "role": "assistant",
+        "content": "Glad it resonates \u2014 happy to detail the approach.",
+        "timestamp": "2026-01-01T13:00:05"
+      }
+    ]
+  }
+}

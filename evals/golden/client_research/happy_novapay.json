@@ -1,0 +1,16 @@
+{
+  "id": "happy_novapay",
+  "agent": "client_research",
+  "description": "Fintech migration brief.",
+  "tags": [
+    "happy"
+  ],
+  "source": {
+    "client_brief": "NovaPay Financial is a mid-sized fintech (400 employees) running a monolithic Java payments app. We want a 6-month engagement to assess the architecture, design a microservices target on AWS, migrate the core payment module, and keep PCI-DSS compliance. Required: AWS, microservices, payments domain.",
+    "company_name": "NovaPay Financial"
+  },
+  "input": {
+    "client_brief": "NovaPay Financial is a mid-sized fintech (400 employees) running a monolithic Java payments app. We want a 6-month engagement to assess the architecture, design a microservices target on AWS, migrate the core payment module, and keep PCI-DSS compliance. Required: AWS, microservices, payments domain.",
+    "company_name": "NovaPay Financial"
+  }
+}

@@ -1,0 +1,162 @@
+{
+  "id": "happy_good_fit",
+  "agent": "gap",
+  "description": "Strong fit: few gaps.",
+  "tags": [
+    "happy"
+  ],
+  "source": {
+    "client_context": {
+      "company_name": "NovaPay Financial",
+      "industry": "FinTech / Payments",
+      "key_challenges": [
+        "Legacy Java monolith",
+        "PCI-DSS compliance"
+      ],
+      "required_skills": [
+        "AWS",
+        "Microservices",
+        "Payments domain"
+      ],
+      "nice_to_have_skills": [
+        "PCI-DSS",
+        "Kafka"
+      ],
+      "tech_stack_mentioned": [
+        "AWS",
+        "Java",
+        "Kafka"
+      ],
+      "tone": "Direct, technical",
+      "keywords_to_mirror": [
+        "AWS",
+        "microservices",
+        "PCI-DSS"
+      ]
+    },
+    "structured_profile": {
+      "name": "Alex Rivera",
+      "title": "Senior Technology Consultant",
+      "summary": "Senior consultant; AWS cloud migration and microservices for financial services.",
+      "skills": [
+        "AWS",
+        "Microservices",
+        "Python",
+        "Kafka",
+        "Terraform"
+      ],
+      "experience": [
+        {
+          "company": "Tikal Tech",
+          "role": "Senior Consultant",
+          "duration": "2020-Present",
+          "description": "Led AWS cloud migration for a Tier-1 bank.",
+          "technologies": [
+            "AWS",
+            "Microservices"
+          ],
+          "achievements": [
+            "Cut infrastructure cost 35%"
+          ]
+        }
+      ],
+      "projects": [
+        {
+          "name": "Bank CloudShift",
+          "description": "Full cloud migration to AWS",
+          "technologies": [
+            "AWS"
+          ]
+        }
+      ],
+      "education": [
+        {
+          "degree": "B.Sc. CS",
+          "institution": "Tel Aviv University",
+          "year": "2015"
+        }
+      ],
+      "certifications": [
+        "AWS Solutions Architect - Professional"
+      ],
+      "tone_markers": "Direct and pragmatic; uses concrete metrics."
+    }
+  },
+  "input": {
+    "client_context": {
+      "company_name": "NovaPay Financial",
+      "industry": "FinTech / Payments",
+      "key_challenges": [
+        "Legacy Java monolith",
+        "PCI-DSS compliance"
+      ],
+      "required_skills": [
+        "AWS",
+        "Microservices",
+        "Payments domain"
+      ],
+      "nice_to_have_skills": [
+        "PCI-DSS",
+        "Kafka"
+      ],
+      "tech_stack_mentioned": [
+        "AWS",
+        "Java",
+        "Kafka"
+      ],
+      "tone": "Direct, technical",
+      "keywords_to_mirror": [
+        "AWS",
+        "microservices",
+        "PCI-DSS"
+      ]
+    },
+    "structured_profile": {
+      "name": "Alex Rivera",
+      "title": "Senior Technology Consultant",
+      "summary": "Senior consultant; AWS cloud migration and microservices for financial services.",
+      "skills": [
+        "AWS",
+        "Microservices",
+        "Python",
+        "Kafka",
+        "Terraform"
+      ],
+      "experience": [
+        {
+          "company": "Tikal Tech",
+          "role": "Senior Consultant",
+          "duration": "2020-Present",
+          "description": "Led AWS cloud migration for a Tier-1 bank.",
+          "technologies": [
+            "AWS",
+            "Microservices"
+          ],
+          "achievements": [
+            "Cut infrastructure cost 35%"
+          ]
+        }
+      ],
+      "projects": [
+        {
+          "name": "Bank CloudShift",
+          "description": "Full cloud migration to AWS",
+          "technologies": [
+            "AWS"
+          ]
+        }
+      ],
+      "education": [
+        {
+          "degree": "B.Sc. CS",
+          "institution": "Tel Aviv University",
+          "year": "2015"
+        }
+      ],
+      "certifications": [
+        "AWS Solutions Architect - Professional"
+      ],
+      "tone_markers": "Direct and pragmatic; uses concrete metrics."
+    }
+  }
+}
