@@ -6,7 +6,8 @@ Output: structured client context {industry, challenges, tech_stack, tone, key_r
 Runs in parallel with Profile Agent.
 """
 
-import json
+from agents.harness import AgentHarness
+from agents.schemas import ClientContextOutput
 
 SYSTEM_PROMPT = """You are a business analyst specializing in technology consulting sales.
 
@@ -47,8 +48,9 @@ def run_client_research_agent(client_brief: str, company_name: str, llm_client) 
     Returns:
         Client context dict
     """
-    print("[Client Research Agent] Running...")
+    harness = AgentHarness(
+        llm_client, name="client_research", system_prompt=SYSTEM_PROMPT,
+        output_schema=ClientContextOutput,
+    )
     user_message = f"Company: {company_name}\n\nBrief:\n{client_brief}"
-    result = llm_client.call_json(SYSTEM_PROMPT, user_message)
-    print("[Client Research Agent] Done.")
-    return result
+    return harness.run(user_message)

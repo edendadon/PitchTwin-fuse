@@ -7,9 +7,9 @@ Runs sequentially after both parallel agents complete. This is the central HANDO
 """
 
 import json
-from pydantic import BaseModel, Field
-from pydantic_ai import Agent
-from agents.pydantic_ai_setup import create_model
+
+from agents.harness import AgentHarness
+from agents.schemas import MatchingOutput
 
 SYSTEM_PROMPT = """You are a strategic consultant matching expert.
 
@@ -51,52 +51,24 @@ Rank by relevance to the CLIENT's stated challenges and requirements, not by imp
 """
 
 
-class MatchItem(BaseModel):
-    type: str = Field(description="experience|project|skill")
-    item: str = Field(description="Name or description")
-    relevance_score: int = Field(ge=1, le=10, description="Relevance score 1-10")
-    reason: str = Field(description="Why this is relevant")
-    suggested_framing: str = Field(description="How to present this for maximum impact")
-
-
-class MatchingOutput(BaseModel):
-    top_matches: list[MatchItem] = Field(description="Top matches scored 7-10")
-    secondary_matches: list[MatchItem] = Field(description="Secondary matches scored 4-6")
-    client_tone_match: str = Field(description="How to adapt communication style")
-    headline_positioning: str = Field(description="One-sentence positioning statement")
-
-
-_agent: Agent | None = None
-
-
-def _get_agent() -> Agent:
-    global _agent
-    if _agent is None:
-        _agent = Agent(
-            create_model(),
-            output_type=MatchingOutput,
-            system_prompt=SYSTEM_PROMPT,
-        )
-    return _agent
-
-
-def run_matching_agent(structured_profile: dict, client_context: dict) -> dict:
+def run_matching_agent(structured_profile: dict, client_context: dict, llm_client) -> dict:
     """
     Produce ranked relevance map of consultant's background vs client needs.
 
     Args:
         structured_profile: Output from Profile Agent
         client_context: Output from Client Research Agent
+        llm_client: LLMClient instance
 
     Returns:
         Relevance map dict
     """
-    print("[Matching Agent] Running...")
+    harness = AgentHarness(
+        llm_client, name="matching", system_prompt=SYSTEM_PROMPT,
+        output_schema=MatchingOutput,
+    )
     user_message = json.dumps({
         "consultant_profile": structured_profile,
-        "client_context": client_context
+        "client_context": client_context,
     })
-    agent = _get_agent()
-    result = agent.run_sync(user_message)
-    print("[Matching Agent] Done.")
-    return result.output.model_dump()
+    return harness.run(user_message)

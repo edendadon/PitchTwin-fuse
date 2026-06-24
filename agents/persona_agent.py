@@ -9,6 +9,8 @@ CRITICAL: It must never invent experience not present in the profile.
 
 import json
 
+from agents.harness import AgentHarness
+
 
 def build_system_prompt(structured_profile: dict, relevance_map: dict) -> str:
     """
@@ -77,5 +79,5 @@ def run_persona_agent(
     else:
         user_message_with_context = f"Client: {user_message}"
 
-    response = llm_client.call(system_prompt, user_message_with_context)
-    return response.strip()
+    harness = AgentHarness(llm_client, name="persona", system_prompt=system_prompt, mode="text")
+    return harness.run(user_message_with_context)

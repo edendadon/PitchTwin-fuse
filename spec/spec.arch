@@ -31,27 +31,27 @@
 │                          │  └──────┬───────┘ └─────┬──────┘  │  │
 │                          │         └────────┬───────┘         │  │
 │                          │                  │ HANDOFF         │  │
-│                          │  Phase 2: SEQUENTIAL               │  │
-│                          │                  ▼                 │  │
-│                          │         ┌────────────────┐         │  │
-│                          │         │ Matching Agent │         │  │
-│                          │         │ relevance map  │         │  │
-│                          │         └───────┬────────┘         │  │
-│                          │                 │ HANDOFF          │  │
-│                          │        ┌────────┴────────┐         │  │
-│                          │        ▼                 ▼         │  │
-│                          │ ┌─────────────┐  ┌───────────────┐ │  │
-│                          │ │Writer Agent │  │   Gap Agent   │ │  │
-│                          │ │CV+bio+      │  │gap analysis + │ │  │
-│                          │ │talk points  │  │framing notes  │ │  │
-│                          │ └──────┬──────┘  └───────┬───────┘ │  │
-│                          │        └────────┬─────────┘         │  │
+│                          │  ┌──────────────────────────────┐  │  │
+│                          │  │  Agent Harness (cross-cut)   │  │  │
+│                          │  │  validation · tracing · retry│  │  │
+│                          │  └──────────────┬───────────────┘  │  │
 │                          │                 │                   │  │
-│                          │         ┌───────▼────────┐          │  │
+│                          │  Phase 2: SINGLE CALL              │  │
+│                          │                 ▼                   │  │
+│                          │         ┌────────────────┐         │  │
+│                          │         │ Combined Agent │         │  │
+│                          │         │ match+write+   │         │  │
+│                          │         │ gap in 1 call  │         │  │
+│                          │         └───────┬────────┘         │  │
+│                          │                 │                   │  │
+│                          │         ┌───────┴────────┐          │  │
 │                          │         │ PROPOSAL PKG   │          │  │
 │                          │         │ (stored SQLite)│          │  │
 │                          │         └────────────────┘          │  │
-│                          └───────────────────────────────────┘  │
+│                          └───────────────────────────────────┘  │  │
+│                                                                 │
+│                                                                 │
+│                                                                 │
 │                                                                 │
 │  ┌──────────────────────────────────────────────────────────┐   │
 │  │                  Twin Session Layer                       │   │
@@ -83,14 +83,43 @@ Every agent is a pure Python function with this signature:
 
 ```python
 def run_<agent_name>(input_data: dict, llm_client: LLMClient) -> dict:
-    system_prompt = "..."
-    user_message = json.dumps(input_data)
-    raw_output = llm_client.call(system_prompt, user_message)
-    return parse_output(raw_output)
+    ...
 ```
 
 Agents communicate **only via return values** — no shared state, no side effects.
 The orchestrator owns all data flow and passes outputs explicitly as inputs to the next agent.
+
+### Agent Harness (cross-cutting)
+
+```python
+class AgentHarness:
+    def __init__(self, name: str, system_prompt: str,
+                 output_schema: type[BaseModel] | None = None):
+        ...
+
+    def run(self, llm_client: LLMClient, **inputs) -> dict:
+        # 1. Validate inputs against optional input schema
+        # 2. Start OTel span (nested under orchestrator's pipeline span)
+        # 3. Call LLM with retries + exponential backoff
+        # 4. Parse JSON response
+        # 5. Validate output against output_schema
+        # 6. Retry on validation failure: feed error back to LLM
+        # 7. Record metrics (latency, retries, validation status)
+        # 8. Return validated dict
+```
+
+All 7 agents use `AgentHarness.run()` as their internal engine. Agent functions become thin wrappers:
+
+```python
+from agents.harness import AgentHarness
+
+_HARNESS = AgentHarness(name="matching", system_prompt=MATCHING_SYSTEM_PROMPT,
+                        output_schema=MatchingOutput)
+
+def run_matching_agent(structured_profile, client_context, llm_client) -> dict:
+    return _HARNESS.run(llm_client, structured_profile=structured_profile,
+                        client_context=client_context)
+```
 
 ---
 
@@ -100,33 +129,23 @@ The orchestrator owns all data flow and passes outputs explicitly as inputs to t
 raw_profile (text)
         │
         ▼
-[Profile Agent]
-        │
-        └── structured_profile: {skills[], experience[], projects[], tone_markers}
-                │
-                ▼ (merges with)
-[Client Research Agent] ← client_brief (text) + company_name (string)
-        │
-        └── client_context: {industry, challenges[], tech_stack[], tone}
-                │
-                ▼
-[Matching Agent] ← structured_profile + client_context
-        │
-        └── relevance_map: [{experience_item, relevance_score, reason}]
-                │
-         ┌──────┴──────┐
-         ▼             ▼
-[Writer Agent]    [Gap Agent]
-  relevance_map    client_requirements + structured_profile
-  + client_tone         │
-         │         gap_analysis: {missing[], suggestions[]}
-         ▼
-  proposal_artifacts:
-    tailored_cv (text)
-    bio (text)
-    talking_points (list)
-         │
-         └── ALL → PROPOSAL PACKAGE stored in SQLite
+[Profile Agent]───┐
+                  │ (parallel, harness traces both)
+[Client Research]─┤
+  ← client_brief  │
+        │         │
+        └────┬────┘
+             │ HANDOFF
+             ▼
+[Combined Agent]  ←── [Agent Harness: validate, trace, retry]
+             │
+             ├── relevance_map
+             ├── tailored_cv
+             ├── bio
+             ├── talking_points
+             └── gap_analysis
+             │
+             └── ALL → PROPOSAL PACKAGE stored in SQLite
 ```
 
 ---
@@ -185,13 +204,15 @@ pitchtwin/
 ├── models.py                   # Dataclasses: Profile, Proposal, TwinSession
 ├── agents/
 │   ├── __init__.py
-│   ├── profile_agent.py        # Parses consultant profile
+│   ├── harness.py               # AgentHarness: validation, tracing, retry
+│   ├── profile_agent.py         # Parses consultant profile
 │   ├── client_research_agent.py # Analyzes client brief
-│   ├── matching_agent.py       # Ranks relevance
-│   ├── writer_agent.py         # Generates CV, bio, talking points
-│   ├── gap_agent.py            # Identifies gaps
-│   ├── persona_agent.py        # Powers the twin conversation
-│   └── debrief_agent.py        # Summarizes client session
+│   ├── matching_agent.py        # Ranks relevance
+│   ├── writer_agent.py          # Generates CV, bio, talking points
+│   ├── gap_agent.py             # Identifies gaps
+│   ├── combined_agent.py        # Match + Writer + Gap in one call
+│   ├── persona_agent.py         # Powers the twin conversation
+│   └── debrief_agent.py         # Summarizes client session
 ├── templates/
 │   ├── base.html
 │   ├── dashboard.html
@@ -221,23 +242,26 @@ pitchtwin/
 ## Concurrency Model
 
 ```
-Thread 1 (main)                Thread 2
-      │                             │
-orchestrator.run()                  │
-      │                             │
-  t1 = Thread(profile_agent)        │
-  t2 = Thread(client_research)      │
-  t1.start() ──────────────────► profile_agent runs
-  t2.start() ──────────────────────────────────────► client_research runs
-  t1.join()  ◄────────────────── returns structured_profile
-  t2.join()  ◄──────────────────────────────────────── returns client_context
-      │
-  matching_agent(structured_profile, client_context)
-      │
-  writer_agent(relevance_map) + gap_agent(requirements, profile) [can thread]
-      │
-  store results → return proposal
+           Thread 1 (main)                Thread 2
+                 │                             │
+        orchestrator.run()                     │
+                 │                             │
+           t1 = Thread(profile_agent)           │
+           t2 = Thread(client_research)         │
+           t1.start() ──────────────────► profile_agent
+           t2.start() ──────────────────────────────────► client_research
+           t1.join()  ◄────────────────── returns structured_profile
+           t2.join()  ◄──────────────────────────────────────── returns client_context
+                 │                      ◄──── OTel context propagated by harness ────►
+                 │
+           combined_agent(profile, context)
+           (harness handles tracing + validation)
+                 │
+           store results → return proposal
 ```
+
+### Harness Thread Safety
+The `AgentHarness` captures the current OTel context at `run()` time and re-attaches it inside spawned threads, eliminating the `parent_ctx` / `otel_context.attach()` boilerplate from the orchestrator.
 
 ---
 
