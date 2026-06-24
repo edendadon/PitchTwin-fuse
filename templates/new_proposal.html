@@ -59,7 +59,9 @@
 </div>
 
 <script>
-// Pre-fill from demo seed if available
+// Pre-fill from a one-time demo-seed hand-off, then clear it so the form is
+// blank on every subsequent visit (sessionStorage otherwise persists for the
+// whole tab session and would re-apply stale demo data on each visit).
 window.addEventListener('DOMContentLoaded', () => {
   const profileId = sessionStorage.getItem('demo_profile_id');
   const companyName = sessionStorage.getItem('demo_company_name');
@@ -68,6 +70,10 @@ window.addEventListener('DOMContentLoaded', () => {
   if (profileId) document.getElementById('consultant_id').value = profileId;
   if (companyName) document.getElementById('company_name').value = companyName;
   if (clientBrief) document.getElementById('client_brief').value = clientBrief;
+
+  sessionStorage.removeItem('demo_profile_id');
+  sessionStorage.removeItem('demo_company_name');
+  sessionStorage.removeItem('demo_client_brief');
 });
 
 document.getElementById('proposal-form').addEventListener('submit', () => {
