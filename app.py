@@ -28,7 +28,7 @@ load_dotenv()
 
 import logfire
 
-from observability import configure_logfire, tag_user_on_current_span
+from observability import agents_only, configure_logfire, tag_user_on_current_span
 
 # Configure tracing before instrumenting anything else.
 configure_logfire()
@@ -46,8 +46,11 @@ from orchestrator.memory import MemoryStore
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "pitchtwin-dev-secret")
 
-# One span per incoming request, across every route.
-logfire.instrument_flask(app)
+# One span per incoming request, across every route — unless we're in
+# agents-only mode (LOGFIRE_AGENTS_ONLY), where web spans are suppressed so only
+# agent calls show up in Logfire.
+if not agents_only():
+    logfire.instrument_flask(app)
 
 
 @app.before_request

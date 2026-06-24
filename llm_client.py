@@ -75,12 +75,19 @@ class LLMClient:
             pass
 
     def _init_client(self):
+        # In agents-only mode, skip the raw provider instrumentation so Logfire
+        # shows one clean span per agent call (emitted by AgentHarness) instead
+        # of low-level HTTP/client spans.
+        from observability import agents_only
+        instrument = not agents_only()
+
         if self.provider == "gemini":
             import google.genai as genai
             # Required for prompts/completions to be captured in spans.
             os.environ.setdefault("OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT", "true")
             self._gemini_client = genai.Client(api_key=GEMINI_API_KEY)
-            logfire.instrument_google_genai()
+            if instrument:
+                logfire.instrument_google_genai()
         elif self.provider == "groq":
             from groq import Groq
             # Groq has no dedicated Logfire integration; calls are wrapped in
@@ -94,7 +101,8 @@ class LLMClient:
             )
             # litellm proxy speaks the OpenAI protocol, so the OpenAI
             # instrumentation captures these calls.
-            logfire.instrument_openai(self._litellm_client)
+            if instrument:
+                logfire.instrument_openai(self._litellm_client)
 
     def call(self, system_prompt: str, user_message: str, retries: int = 3) -> str:
         """
@@ -136,7 +144,8 @@ class LLMClient:
 
     def _call_groq(self, system_prompt: str, user_message: str) -> str:
         model = "llama-3.3-70b-versatile"
-        with logfire.span("groq chat completion", model=model):
+        from observability import framework_span
+        with framework_span("groq chat completion", model=model):
             response = self._groq_client.chat.completions.create(
                 model=model,
                 messages=[
@@ -196,7 +205,8 @@ class LLMClient:
 
     def _stream_groq(self, system_prompt: str, user_message: str):
         model = "llama-3.3-70b-versatile"
-        with logfire.span("groq chat completion stream", model=model):
+        from observability import framework_span
+        with framework_span("groq chat completion stream", model=model):
             stream = self._groq_client.chat.completions.create(
                 model=model,
                 messages=[

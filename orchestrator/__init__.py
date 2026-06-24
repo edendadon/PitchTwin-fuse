@@ -15,6 +15,7 @@ from datetime import datetime
 import logfire
 
 import db
+from observability import framework_span
 from models import Proposal, TwinSession
 from llm_client import LLMClient
 from token_tracking import UsageTracker
@@ -119,7 +120,7 @@ def run_proposal_pipeline(consultant_id: str, client_brief: str, company_name: s
     # not collide with — and resume from — the first proposal's checkpoints).
     proposal_id = str(uuid.uuid4())
 
-    with logfire.span(
+    with framework_span(
         "proposal pipeline",
         consultant_id=consultant_id,
         consultant_name=profile.name,
@@ -227,7 +228,7 @@ def handle_twin_message(session_id: str, user_message: str) -> str:
 
     llm = LLMClient()
 
-    with logfire.span(
+    with framework_span(
         "twin message (persona agent)",
         session_id=session_id,
         consultant_id=proposal.consultant_id,
@@ -264,7 +265,7 @@ def end_twin_session(session_id: str) -> str:
     db.save_session(session)
 
     llm = LLMClient()
-    with logfire.span(
+    with framework_span(
         "debrief agent",
         session_id=session_id,
         turn_count=len(session.transcript),
