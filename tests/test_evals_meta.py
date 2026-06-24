@@ -104,3 +104,58 @@ def test_hallucination_gate_passes_grounded():
     )
     assert v.status == Status.PASS
     print("PASS: hallucination gate passes grounded output")
+
+
+# --- baseline regression detection (US2, offline) ---------------------------
+
+from evals import report as rpt  # noqa: E402
+
+
+def _r(agent, case_id, status):
+    return {"agent": agent, "case_id": case_id, "status": status, "verdicts": []}
+
+
+def test_baseline_roundtrip_no_regression_when_unchanged(tmp_path, monkeypatch):
+    monkeypatch.setattr(rpt, "BASELINE_DIR", tmp_path)
+    results = [_r("matching", "c1", "PASS"), _r("matching", "c2", "PASS")]
+    rpt.write_baseline("matching", results)
+    baseline = rpt.load_baseline("matching")
+    assert baseline is not None and baseline["cases"]["c1"]["passed"] is True
+    assert rpt.compute_regressions(results, baseline) == []
+    print("PASS: unchanged re-run reports zero regressions")
+
+
+def test_regression_detected_when_passing_case_degrades(tmp_path, monkeypatch):
+    monkeypatch.setattr(rpt, "BASELINE_DIR", tmp_path)
+    rpt.write_baseline("matching", [_r("matching", "c1", "PASS"), _r("matching", "c2", "PASS")])
+    baseline = rpt.load_baseline("matching")
+    degraded = [_r("matching", "c1", "PASS"), _r("matching", "c2", "FAIL")]
+    assert rpt.compute_regressions(degraded, baseline) == ["c2"]
+    print("PASS: degraded previously-passing case flagged as regression")
+
+
+def test_first_run_without_baseline_reports_no_regression():
+    assert rpt.compute_regressions([_r("matching", "c1", "FAIL")], None) == []
+    print("PASS: first run (no baseline) reports no phantom regressions")
+
+
+def test_update_baseline_refuses_to_capture_a_failing_run(tmp_path, monkeypatch):
+    from evals import run as evalrun
+
+    monkeypatch.setattr(rpt, "BASELINE_DIR", tmp_path)
+    results = [_r("matching", "c1", "PASS"), _r("matching", "c2", "FAIL")]
+    code, _ = evalrun._summarize(results, update_baseline=True)
+    assert code == evalrun.EXIT_FAIL
+    assert not (tmp_path / "matching.json").exists()  # not rubber-stamped
+    print("PASS: --update-baseline refuses a failing run")
+
+
+def test_update_baseline_captures_a_clean_run(tmp_path, monkeypatch):
+    from evals import run as evalrun
+
+    monkeypatch.setattr(rpt, "BASELINE_DIR", tmp_path)
+    results = [_r("matching", "c1", "PASS"), _r("matching", "c2", "PASS")]
+    code, _ = evalrun._summarize(results, update_baseline=True)
+    assert code == evalrun.EXIT_OK
+    assert (tmp_path / "matching.json").exists()
+    print("PASS: --update-baseline captures a clean run")

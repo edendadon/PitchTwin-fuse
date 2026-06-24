@@ -23,9 +23,26 @@ Needs an LLM provider configured in `.env` (the judge + agents call the model).
 | Code | Meaning |
 |------|---------|
 | 0 | all gates passed |
-| 1 | a hard gate failed (e.g. a hallucination was caught) |
+| 1 | a hard gate failed (e.g. a hallucination was caught) or a regression vs baseline |
 | 3 | infrastructure error (provider unreachable / bad credentials) — never a false pass |
 | 2 | (US3) coverage failure |
+
+## Baselines & regressions
+
+A baseline is a committed snapshot of each agent's per-case pass/fail at a
+known-good point, stored at `evals/baselines/current/<agent>.json`.
+
+```bash
+python -m evals.run --agent matching --update-baseline   # capture/refresh (explicit only)
+python -m evals.run --agent matching                     # compare; new failures are flagged "<-- REGRESSION"
+```
+
+- The **first run** for an agent with no baseline auto-captures one (no false regression).
+- On later runs, a case that **passed in the baseline but fails now** is reported as a
+  REGRESSION. Hard gates always bind: any FAIL (regression or not) exits non-zero.
+- Updating a baseline is **never automatic** — it requires `--update-baseline`, and it
+  **refuses to capture a run that has any failure or infrastructure error** (fix first, then
+  baseline — no rubber-stamping). Commit baselines to git so changes are reviewable.
 
 ## Add a golden case
 

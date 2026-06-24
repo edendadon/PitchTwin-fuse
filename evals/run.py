@@ -27,6 +27,7 @@ from pathlib import Path
 
 import pytest
 
+from evals import report as rpt
 from evals.harness import AGENT_NAMES, registered_agents
 
 EVALS_DIR = Path(__file__).parent
@@ -60,27 +61,67 @@ def _run_pytest(agents: list[str], samples: int) -> None:
     pytest.main(["-q", "-p", "no:cacheprovider", str(EVALS_DIR / "test_eval.py")])
 
 
-def _summarize(report: dict) -> tuple[int, str]:
-    res = report.get("results", [])
-    n = len(res)
-    passed = [r for r in res if r["status"] == "PASS"]
-    failed = [r for r in res if r["status"] == "FAIL"]
-    errored = [r for r in res if r["status"] == "ERROR"]
+def _summarize(results: list[dict], *, update_baseline: bool) -> tuple[int, str]:
+    n = len(results)
+    passed = sum(1 for r in results if r["status"] == "PASS")
+    any_infra = any(r["status"] == "ERROR" for r in results)
+    any_fail = any(r["status"] == "FAIL" for r in results)
 
-    lines = [f"\nEval results: {len(passed)}/{n} passed"]
-    for r in res:
+    grouped = rpt.group_by_agent(results)
+    regressions: list[str] = []   # "agent:case"
+    captured: list[str] = []      # agents whose baseline was (re)written
+
+    skipped_capture: list[str] = []   # agents not captured because the run wasn't clean
+    for agent, ares in grouped.items():
+        if update_baseline:
+            # Only baseline a CLEAN run — refuse to rubber-stamp failures/errors.
+            if any(r["status"] != "PASS" for r in ares):
+                skipped_capture.append(agent)
+                continue
+            rpt.write_baseline(agent, ares)
+            captured.append(agent)
+            continue
+        baseline = rpt.load_baseline(agent)
+        if baseline is None:
+            if not rpt.has_infra_error(ares):
+                rpt.write_baseline(agent, ares)  # first run: auto-capture, no false regression
+                captured.append(agent)
+        else:
+            regressions += [f"{agent}:{c}" for c in rpt.compute_regressions(ares, baseline)]
+
+    lines = [f"\nEval results: {passed}/{n} passed"]
+    for r in results:
         mark = {"PASS": "PASS", "FAIL": "FAIL", "ERROR": "ERR "}[r["status"]]
-        lines.append(f"  [{mark}] {r['agent']}:{r['case_id']}")
+        reg = "  <-- REGRESSION" if f"{r['agent']}:{r['case_id']}" in regressions else ""
+        lines.append(f"  [{mark}] {r['agent']}:{r['case_id']}{reg}")
         if r["status"] != "PASS":
             for v in r["verdicts"]:
                 if v["status"] in ("FAIL", "ERROR"):
                     lines.append(f"          {v['evaluator']}: {v['reason']}")
 
-    if errored:
-        lines.append(f"\nINFRASTRUCTURE ERROR ({len(errored)} case(s)) — not a quality verdict.")
+    if update_baseline:
+        lines.append(f"\nBaseline updated for: {', '.join(captured) or '(none)'}")
+        if skipped_capture:
+            lines.append(
+                f"NOT captured (run had failures — fix first): {', '.join(skipped_capture)}"
+            )
+        if any_infra:
+            return EXIT_INFRA, "\n".join(lines)
+        if any_fail:
+            return EXIT_FAIL, "\n".join(lines)
+        return EXIT_OK, "\n".join(lines)
+
+    if captured:
+        lines.append(f"\nCaptured initial baseline for: {', '.join(captured)}")
+    if regressions:
+        lines.append(f"REGRESSIONS ({len(regressions)}): {', '.join(regressions)}")
+
+    if any_infra:
+        lines.append("\nINFRASTRUCTURE ERROR — not a quality verdict.")
         return EXIT_INFRA, "\n".join(lines)
-    if failed:
-        lines.append(f"\nFAILED — {len(failed)} case(s) failed a hard gate.")
+    if any_fail:
+        note = " (includes regressions)" if regressions else ""
+        lines.append(f"\nFAILED — hard gate failure{note}.")
         return EXIT_FAIL, "\n".join(lines)
     lines.append("\nPASSED — all hard gates green.")
     return EXIT_OK, "\n".join(lines)
@@ -89,9 +130,6 @@ def _summarize(report: dict) -> tuple[int, str]:
 def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv if argv is not None else sys.argv[1:])
     agents = registered_agents() if args.all else [args.agent]
-
-    if args.update_baseline:
-        print("[evals] --update-baseline is not implemented in this MVP (US2).", file=sys.stderr)
 
     if not agents:
         print("[evals] no registered agents to evaluate.", file=sys.stderr)
@@ -107,7 +145,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.json_out:
         shutil.copyfile(REPORT_PATH, args.json_out)
 
-    code, summary = _summarize(report)
+    code, summary = _summarize(report.get("results", []), update_baseline=args.update_baseline)
     print(summary)
     return code
 
