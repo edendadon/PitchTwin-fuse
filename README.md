@@ -55,14 +55,18 @@ uv run python app.py
 
 ## Architecture
 
-```
-Profile Agent ──┐
-                ├─ (parallel) ─► Matching Agent ─► Writer Agent ─► Proposal Package
-Client Research ┘                               └─► Gap Agent ──┘
+PitchTwin runs **5 agents across 4 phases**, with two error-recovery layers
+(provider retry + backoff, and schema-validate / re-prompt / graceful
+degradation). Full breakdown — including the non-happy (error-recovery) path and
+a node→source map — in **[docs/architecture-diagrams.md](docs/architecture-diagrams.md)**.
 
-Persona Agent ─► Interactive twin (one call per client message)
-Debrief Agent ─► Fires on session end → report for consultant
-```
+### Happy path — agents & where they interact
+
+![PitchTwin happy-path agent pipeline](docs/diagrams/happy-path.png)
+
+### Non-happy path — error recovery
+
+![PitchTwin error-recovery flow](docs/diagrams/non-happy-path.png)
 
 See `spec/spec.arch` for the full blueprint.
 

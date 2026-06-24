@@ -32,3 +32,18 @@ Thumbs.db
 
 # Uploads (if added later)
 uploads/
+
+# Eval run artifacts
+evals/.reports/
+
+# Test / tooling caches
+.pytest_cache/
+
+# Git worktrees (created by git-worktree tooling)
+.worktrees/
+
+# Test / tooling caches
+.pytest_cache/
+
+# Git worktrees (created by git-worktree tooling)
+.worktrees/
