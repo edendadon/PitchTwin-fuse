@@ -62,9 +62,11 @@ Run `/levelup.validate` to:
 | `/levelup.init` | Scan codebase and discover CDRs (like `/architect.init`) |
 | `/levelup.clarify` | Resolve ambiguities in discovered CDRs (like `/architect.clarify`) |
 | `/levelup.specify` | Refine CDRs using current feature spec context |
-| `/levelup.skill` | Build one skill from accepted CDRs |
+| `/levelup.skills` | Build a single skill from accepted CDRs |
 | `/levelup.implement` | Compile accepted CDRs into a PR to team-ai-directives |
+| `/levelup.trace` | Generate and validate AI session execution traces |
 | `/levelup.validate` | Scan team-ai-directives for rule conflicts |
+| `/levelup.repair` | Re-index CDR.md, .skills.json, and AGENTS.md |
 
 ## Quick Start
 
@@ -73,7 +75,7 @@ Run `/levelup.validate` to:
 After implementing a feature, generate a trace to document the session:
 
 ```bash
-/spec.trace
+/levelup.trace
 ```
 
 This creates `specs/{BRANCH}/trace.md` with execution summary.
@@ -103,7 +105,7 @@ This validates patterns and updates CDR statuses to "Accepted" or "Rejected".
 Build a skill from accepted CDRs:
 
 ```bash
-/levelup.skill python-error-handling
+/levelup.skills python-error-handling
 ```
 
 This creates a skill in `.specify/drafts/skills/`.
@@ -154,80 +156,6 @@ Rules are organized by **functional category** (not technology):
 | `data/` | Data patterns, provenance | `rules/data/python_provenance_tracking.md` |
 
 **Filename format**: `{technology}_{pattern_name}.md` (use underscores)
-
-## Constitution CDR Workflow
-
-**Constitution changes follow the standard CDR lifecycle** - they are NOT written directly to team-ai-directives.
-
-### Constitution CDR Types
-
-| Type | When Used | Action |
-|------|-----------|--------|
-| **Constitution Creation** | No team constitution exists | Creates new constitution from template |
-| **Constitution Amendment** | Enhancing existing constitution | Appends new principles to existing document |
-
-### Workflow
-
-1. **Discovery** (`/levelup.init`):
-   - Analyzes cross-cutting patterns across sub-systems
-   - Derives principles from patterns with ≥50% coverage
-   - Creates Constitution CDR with status "Discovered"
-   - Stores in `.specify/drafts/cdr.md`
-
-2. **Review** (`/levelup.clarify`):
-   - Team reviews derived principles
-   - Validates evidence from codebase
-   - Decides on version strategy (MAJOR/MINOR/PATCH)
-   - Updates CDR status to "Accepted" or "Rejected"
-
-3. **Publication** (`/levelup.implement`):
-   - Creates or updates `context_modules/constitution.md`
-   - Adds verification metadata
-   - Includes CDR reference for audit trail
-
-### Why This Matters
-
-- **Team Review**: All constitution changes require explicit approval
-- **Audit Trail**: CDR tracks decision, evidence, and rationale
-- **Version Control**: Proper versioning with semver
-- **Quality Gates**: Constitution changes go through same validation as other context modules
-
-### Example Constitution CDR
-
-```markdown
-## CDR-CONST-001: Team Constitution Creation
-
-### Status
-**Discovered**
-
-### Context Type
-Constitution Creation
-
-### Context
-Team constitution missing. Deriving foundational principles from cross-cutting patterns.
-
-### Proposed Content
-# Team Constitution
-
-## Core Principles
-
-### I. Robust Error Handling
-All services MUST implement consistent error handling...
-
-**Source**: Cross-sub-system analysis
-**Evidence**: auth/errors.py, payments/exceptions.py
-
-### Constitution Strategy
-
-#### Derived Principles
-| Principle Name | Source | Evidence | Action |
-|----------------|--------|----------|--------|
-| Robust Error Handling | Cross-cutting pattern | 3 sub-systems | New |
-
-#### Version Strategy
-- **Current version**: None
-- **Version bump**: N/A (new constitution)
-```
 
 ## Skill Types Taxonomy
 
@@ -295,8 +223,8 @@ pull_request:
 ## Command Flow
 
 ```
-levelup.init          levelup.clarify        levelup.skill        levelup.implement
-(Discover CDRs)  ───▶  (Resolve Ambiguities) ───▶ (Build Skill)  ───▶ (Create PR)
+levelup.init          levelup.clarify        levelup.skills        levelup.implement
+(Discover CDRs)  ───▶  (Resolve Ambiguities) ───▶ (Build Skills)  ───▶ (Create PR)
       │                      │                      │                      │
       │    [handoff]         │    [handoff]         │                      │
       └──▶ levelup.specify ◀────┘                      │                      │
@@ -306,7 +234,7 @@ levelup.init          levelup.clarify        levelup.skill        levelup.implem
                      ┌───────────────────────────────┘                      │
                      │                                                      │
                      ▼                                                      │
-              spec.trace ◀──────────────────────────────────────────────────┘
+              levelup.trace ◀───────────────────────────────────────────────┘
               (Generate Trace)
                      │
                      │ [handoff]
@@ -325,9 +253,48 @@ levelup.validate ◀────────────────────
       ▼
 levelup.clarify
 (Resolve conflicts)
+
+
+levelup.repair
+(Re-index TD files)
+      │
+      │ [after manual edits]
+      ▼
+levelup.validate
+(Verify consistency)
 ```
 
-> **Note**: For re-indexing team-ai-directives files (CDR.md, .skills.json, AGENTS.md), use `/team.repair` from the team-ai-directives extension.
+### Repair Command
+
+Re-index team-ai-directives files when they become inconsistent:
+
+```bash
+/levelup.repair
+```
+
+**Flags**:
+
+| Flag | Description |
+|------|-------------|
+| `--dry-run` | Report only, don't write changes |
+| `--cdr-only` | Only repair CDR.md |
+| `--skills-only` | Only repair .skills.json |
+| `--agents-only` | Only repair AGENTS.md |
+| (default) | Repair all three indexes with auto-fix |
+
+**What it repairs**:
+
+| Target | Repairs |
+|--------|---------|
+| **AGENTS.md** | Creates if missing, restores if corrupted |
+| **CDR.md** | Rebuilds index from context_modules/ |
+| **.skills.json** | Rebuilds manifest from skills/ |
+
+**Auto-fix actions**:
+
+- Adds YAML frontmatter to orphan context modules
+- Generates .skills.json entries for orphan skills
+- Removes entries for missing files
 
 ## Related Issues
 
