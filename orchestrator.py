@@ -8,7 +8,6 @@ Phase 4 (TRIGGERED):  Debrief Agent (fires on session end)
 """
 
 import uuid
-import threading
 import json
 from datetime import datetime
 
@@ -20,67 +19,110 @@ from agents.client_research_agent import run_client_research_agent
 from agents.combined_agent import run_combined_agent
 from agents.persona_agent import build_system_prompt, run_persona_agent
 from agents.debrief_agent import run_debrief_agent
+from orchestrator.workflow import WorkflowEngine, NodeConfig, CircuitBreakerOpen, WorkflowTimeout, MaxIterationsExceeded, DAGValidationError
+from orchestrator.memory import MemoryStore
+
+
+def _build_proposal_dag(profile_id: str, client_brief: str, company_name: str, llm: LLMClient):
+    """Build the DAG for the proposal pipeline."""
+
+    def profile_agent_wrapper(input_data: dict) -> dict:
+        profile = db.get_profile(input_data["consultant_id"])
+        if not profile:
+            raise ValueError(f"Consultant profile {input_data['consultant_id']} not found")
+        result = run_profile_agent(profile.raw_profile, llm)
+        profile.structured = result
+        db.save_profile(profile)
+        return result
+
+    def research_agent_wrapper(input_data: dict) -> dict:
+        return run_client_research_agent(
+            input_data["client_brief"],
+            input_data["company_name"],
+            llm
+        )
+
+    def combined_agent_wrapper(input_data: dict) -> dict:
+        structured_profile = input_data.get("profile_agent", {})
+        client_context = input_data.get("client_research", {})
+        return run_combined_agent(structured_profile, client_context, llm)
+
+    dag = [
+        {
+            "id": "profile_agent",
+            "type": "agent",
+            "config": {"max_retries": 2, "timeout_sec": 60, "max_iterations": 5},
+            "inputs": [],
+            "agent_fn": profile_agent_wrapper,
+        },
+        {
+            "id": "client_research",
+            "type": "agent",
+            "config": {"max_retries": 2, "timeout_sec": 60, "max_iterations": 5},
+            "inputs": [],
+            "agent_fn": research_agent_wrapper,
+        },
+        {
+            "id": "combined_agent",
+            "type": "agent",
+            "config": {"max_retries": 2, "timeout_sec": 120, "max_iterations": 3},
+            "inputs": ["profile_agent", "client_research"],
+            "agent_fn": combined_agent_wrapper,
+        },
+    ]
+    return dag
 
 
 def run_proposal_pipeline(consultant_id: str, client_brief: str, company_name: str) -> Proposal:
     """
     Full pipeline: profile + research → matching → writer + gap → proposal stored.
 
+    Uses WorkflowEngine with DAG-based execution for determinism, checkpointing,
+    loop detection, circuit breaker, and timeout management.
+
     Returns:
         Completed Proposal object with all artifacts populated.
     """
     llm = LLMClient()
 
-    # Load consultant profile
     profile = db.get_profile(consultant_id)
     if not profile:
         raise ValueError(f"Consultant profile {consultant_id} not found")
 
     print(f"\n[Orchestrator] Starting pipeline for {profile.name} → {company_name}")
 
-    # --- PHASE 1: PARALLEL ---
-    structured_profile_result = {}
-    client_context_result = {}
-    errors = []
+    checkpoint_store = MemoryStore()
+    trace_store = MemoryStore()
 
-    def run_profile():
-        try:
-            result = run_profile_agent(profile.raw_profile, llm)
-            structured_profile_result.update(result)
-        except Exception as e:
-            errors.append(f"Profile Agent failed: {e}")
+    dag = _build_proposal_dag(consultant_id, client_brief, company_name, llm)
 
-    def run_research():
-        try:
-            result = run_client_research_agent(client_brief, company_name, llm)
-            client_context_result.update(result)
-        except Exception as e:
-            errors.append(f"Client Research Agent failed: {e}")
+    engine = WorkflowEngine(
+        dag=dag,
+        checkpoint_store=checkpoint_store,
+        trace_store=trace_store,
+        global_timeout_sec=240,
+        circuit_breaker_threshold=3,
+    )
 
-    t1 = threading.Thread(target=run_profile)
-    t2 = threading.Thread(target=run_research)
-    t1.start()
-    t2.start()
-    t1.join()
-    t2.join()
+    context = {
+        "consultant_id": consultant_id,
+        "client_brief": client_brief,
+        "company_name": company_name,
+    }
 
-    if errors:
-        raise RuntimeError(f"Parallel phase failed: {errors}")
+    try:
+        result = engine.execute(proposal_id=consultant_id, context=context)
+    except (CircuitBreakerOpen, WorkflowTimeout, MaxIterationsExceeded, DAGValidationError) as e:
+        print(f"[Orchestrator] Pipeline error: {e}")
+        raise
 
-    # Save structured profile back to db
-    profile.structured = structured_profile_result
-    db.save_profile(profile)
+    combined = result["outputs"].get("combined_agent", {})
+    relevance_map = combined.get("relevance_map", {}) if combined else {}
+    gap_result = combined.get("gap_analysis", {}) if combined else {}
 
-    print("[Orchestrator] Phase 1 complete. Starting Phase 2 (combined)...")
+    client_context = result["outputs"].get("client_research", {})
+    trace_id = result.get("trace_id", "")
 
-    # --- PHASE 2: SINGLE COMBINED CALL ---
-    # HANDOFF: profile data + client context → combined agent (match + write + gap)
-    combined = run_combined_agent(structured_profile_result, client_context_result, llm)
-
-    relevance_map = combined.get("relevance_map", {})
-    gap_result = combined.get("gap_analysis", {})
-
-    # --- STORE PROPOSAL ---
     proposal = Proposal(
         id=str(uuid.uuid4()),
         consultant_id=consultant_id,
@@ -91,13 +133,13 @@ def run_proposal_pipeline(consultant_id: str, client_brief: str, company_name: s
         talking_points=combined.get("talking_points", []),
         gap_analysis=json.dumps(gap_result),
         relevance_map=relevance_map,
-        client_context=client_context_result,
+        client_context=client_context,
         status="ready",
         created_at=datetime.utcnow().isoformat()
     )
     db.save_proposal(proposal)
 
-    print(f"[Orchestrator] Pipeline complete. Proposal ID: {proposal.id}")
+    print(f"[Orchestrator] Pipeline complete. Proposal ID: {proposal.id}, Trace: {trace_id}")
     return proposal
 
 
@@ -142,10 +184,8 @@ def handle_twin_message(session_id: str, user_message: str) -> str:
 
     llm = LLMClient()
 
-    # Build system prompt with real profile data (grounding constraint)
     system_prompt = build_system_prompt(profile.structured, proposal.relevance_map)
 
-    # Get response from Persona Agent
     response = run_persona_agent(
         user_message=user_message,
         conversation_history=session.transcript,
@@ -153,7 +193,6 @@ def handle_twin_message(session_id: str, user_message: str) -> str:
         llm_client=llm
     )
 
-    # Append both turns to transcript
     db.append_message(session_id, "user", user_message)
     db.append_message(session_id, "assistant", response)
 
@@ -175,7 +214,6 @@ def end_twin_session(session_id: str) -> str:
     llm = LLMClient()
     debrief_data = run_debrief_agent(session.transcript, llm)
 
-    # Format debrief as readable text
     debrief_text = json.dumps(debrief_data, indent=2)
 
     session.debrief = debrief_text

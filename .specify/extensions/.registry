@@ -79,6 +79,35 @@
       },
       "registered_skills": [],
       "installed_at": "2026-06-23T22:05:19.566735+00:00"
+    },
+    "team-ai-directives": {
+      "version": "3.2.0",
+      "source": "local",
+      "manifest_hash": "sha256:148f8a63d64a28556a4bd968bba81db3e94c5707c85330f8b00ea43b932b8ff2",
+      "enabled": true,
+      "priority": 1,
+      "registered_commands": {
+        "claude": [
+          "team.verify",
+          "team.discover",
+          "team.constitution",
+          "team.skills",
+          "team.repair",
+          "team.init",
+          "team.evolve"
+        ],
+        "opencode": [
+          "team.verify",
+          "team.discover",
+          "team.constitution",
+          "team.skills",
+          "team.repair",
+          "team.init",
+          "team.evolve"
+        ]
+      },
+      "registered_skills": [],
+      "installed_at": "2026-06-24T07:45:58.178208+00:00"
     }
   }
 }

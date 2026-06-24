@@ -34,6 +34,7 @@ from orchestrator import (
     handle_twin_message,
     end_twin_session
 )
+from orchestrator.memory import MemoryStore
 
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "pitchtwin-dev-secret")
@@ -313,6 +314,42 @@ def demo_seed():
 @app.route("/api/health")
 def health():
     return jsonify({"status": "ok", "service": "PitchTwin"})
+
+
+# -----------------------------------------------------------------------
+# Debug: Execution trace
+# -----------------------------------------------------------------------
+
+@app.route("/debug/trace/<trace_id>")
+def debug_trace(trace_id):
+    """
+    Return JSON execution trace for a given trace_id.
+    Includes all nodes, events, timing, and errors.
+    """
+    try:
+        store = MemoryStore()
+        traces = store.get_trace(trace_id)
+        if not traces:
+            return jsonify({"error": "trace_id not found"}), 404
+
+        total_duration = sum(t.get("duration_ms", 0) or 0 for t in traces)
+        return jsonify({
+            "trace_id": trace_id,
+            "status": "completed",
+            "duration_ms_total": total_duration,
+            "nodes": [
+                {
+                    "node_id": t["node_id"],
+                    "event": t["event"],
+                    "timestamp": t["timestamp"],
+                    "duration_ms": t.get("duration_ms"),
+                    "error": t.get("error"),
+                }
+                for t in traces
+            ],
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == "__main__":
