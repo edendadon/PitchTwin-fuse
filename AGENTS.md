@@ -139,7 +139,6 @@ For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
 `specs/004-dag-workflow-engine/plan.md` (feature 004 — DAG workflow engine:
 checkpointing, loop prevention, timeouts).
-`specs/004-agent-eval-framework/plan.md`
 `specs/005-ci-security-scanning/plan.md` (feature 005 — CI security scanning:
 Trivy + CodeQL + Dependabot).
 <!-- SPECKIT END -->

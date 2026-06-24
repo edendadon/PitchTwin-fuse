@@ -82,11 +82,11 @@ def test_factual_gate_passes_supported_skill():
 
 # --- hallucination gate (injected stub judge) -------------------------------
 
-def _judge_grounded(source, output, samples=1):
+def _judge_grounded(source, output, samples=1, expectations=None):
     return JudgeVerdict(grounded=True, fabricated_claims=[])
 
 
-def _judge_fabricated(source, output, samples=1):
+def _judge_fabricated(source, output, samples=1, expectations=None):
     return JudgeVerdict(grounded=False, fabricated_claims=["Certified Kubernetes Administrator"])
 
 
@@ -105,6 +105,34 @@ def test_hallucination_gate_passes_grounded():
     )
     assert v.status == Status.PASS
     print("PASS: hallucination gate passes grounded output")
+
+
+def test_case_expectations_reach_the_judge():
+    # The judge MUST receive case.expectations (must_decline / must_not_claim),
+    # so adversarial cases are tested the way the docs claim.
+    seen = {}
+
+    def recording_judge(source, output, samples=1, expectations=None):
+        seen["expectations"] = expectations
+        return JudgeVerdict(grounded=True, fabricated_claims=[])
+
+    case = GoldenCase(
+        id="t", agent="persona", description="meta", tags=["adversarial"],
+        source={"structured_profile": {"name": "Sam", "skills": ["AWS"]}},
+        input={}, expectations={"must_decline": True, "must_not_claim": ["quantum"]},
+    )
+    hallucination_detector.evaluate(case, "I don't have that experience.", judge=recording_judge)
+    assert seen["expectations"] == {"must_decline": True, "must_not_claim": ["quantum"]}
+    print("PASS: case.expectations are passed through to the judge")
+
+
+def test_expectation_clause_renders_constraints():
+    clause = hallucination_detector._expectation_clause(
+        {"must_decline": True, "must_not_claim": ["Salesforce"]}
+    )
+    assert "DECLIN" in clause.upper() and "Salesforce" in clause
+    assert hallucination_detector._expectation_clause(None) == ""
+    print("PASS: expectation clause renders must_decline + must_not_claim")
 
 
 # --- baseline regression detection (US2, offline) ---------------------------
