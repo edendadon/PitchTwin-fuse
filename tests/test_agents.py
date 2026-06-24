@@ -8,10 +8,13 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import json
+from unittest.mock import MagicMock, patch
 from agents.profile_agent import run_profile_agent
 from agents.client_research_agent import run_client_research_agent
 from agents.matching_agent import run_matching_agent
+import agents.matching_agent as matching_module
 from agents.writer_agent import run_writer_agent
+import agents.writer_agent as writer_module
 from agents.gap_agent import run_gap_agent
 from agents.persona_agent import build_system_prompt, run_persona_agent
 from agents.debrief_agent import run_debrief_agent
@@ -43,21 +46,6 @@ class MockLLMClient:
                 "questions_asked": ["Do you know Python?"],
                 "recommended_talking_points": ["Lead with Python projects"],
                 "overall_engagement_level": "high", "red_flags": []
-            }
-        elif "matching expert" in sp:
-            # Matching Agent
-            return {
-                "top_matches": [{"type": "skill", "item": "Python", "relevance_score": 9,
-                                 "reason": "Required", "suggested_framing": "Lead with Python"}],
-                "secondary_matches": [], "client_tone_match": "Be direct.",
-                "headline_positioning": "Strong fit for this engagement."
-            }
-        elif "proposal writer" in sp:
-            # Writer Agent
-            return {
-                "tailored_cv": "# Tailored CV\n\nTest CV content.",
-                "bio": "Test bio paragraph.",
-                "talking_points": ["Point 1", "Point 2", "Point 3"]
             }
         elif "candid advisor" in sp:
             # Gap Agent
@@ -94,20 +82,33 @@ def test_client_research_agent():
 
 
 def test_matching_agent():
-    mock = MockLLMClient()
     profile = {"skills": ["Python"], "experience": [], "projects": []}
     context = {"industry": "FinTech", "required_skills": ["Python"]}
-    result = run_matching_agent(profile, context, mock)
+    mock_agent = MagicMock()
+    mock_agent.run_sync.return_value.output.model_dump.return_value = {
+        "top_matches": [{"type": "skill", "item": "Python", "relevance_score": 9,
+                         "reason": "Required", "suggested_framing": "Lead with Python"}],
+        "secondary_matches": [], "client_tone_match": "Be direct.",
+        "headline_positioning": "Strong fit for this engagement."
+    }
+    with patch.object(matching_module, "_agent", mock_agent):
+        result = run_matching_agent(profile, context)
     assert "top_matches" in result
     print("PASS: matching_agent")
 
 
 def test_writer_agent():
-    mock = MockLLMClient()
     relevance_map = {"top_matches": [], "secondary_matches": [], "headline_positioning": "Strong fit"}
     profile = {"name": "Test", "skills": [], "experience": []}
     context = {"tone": "formal", "industry": "FinTech"}
-    result = run_writer_agent(relevance_map, profile, context, mock)
+    mock_agent = MagicMock()
+    mock_agent.run_sync.return_value.output.model_dump.return_value = {
+        "tailored_cv": "# Tailored CV\n\nTest CV content.",
+        "bio": "Test bio paragraph.",
+        "talking_points": ["Point 1", "Point 2", "Point 3"]
+    }
+    with patch.object(writer_module, "_agent", mock_agent):
+        result = run_writer_agent(relevance_map, profile, context)
     assert "tailored_cv" in result
     assert "talking_points" in result
     print("PASS: writer_agent")
