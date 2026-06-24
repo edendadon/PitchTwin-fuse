@@ -21,6 +21,20 @@ LITELLM_API_KEY = os.getenv("LITELLM_API_KEY", "")
 LITELLM_BASE_URL = os.getenv("LITELLM_BASE_URL", "https://litellm.tikalk.dev/v1")
 LITELLM_MODEL = os.getenv("LITELLM_MODEL", "kimi-k2.5")
 
+# Sampling temperature. Unset by default → we omit `temperature` entirely and let
+# the provider use its own default. This matters because some proxied models
+# (e.g. kimi-k2.5) REJECT any temperature other than 1 with a 400 error, so we
+# must not hardcode 0. Set LLM_TEMPERATURE=0 only for providers/models that
+# support it (e.g. Gemini, Groq) when you want deterministic output.
+LLM_TEMPERATURE = os.getenv("LLM_TEMPERATURE", "").strip()
+
+
+def _temperature_kwargs() -> dict:
+    """Return {'temperature': float} when LLM_TEMPERATURE is set, else {} (omit)."""
+    if LLM_TEMPERATURE == "":
+        return {}
+    return {"temperature": float(LLM_TEMPERATURE)}
+
 
 class LLMClient:
     def __init__(self, provider: str = None):
@@ -136,7 +150,7 @@ class LLMClient:
             contents=user_message,
             config=types.GenerateContentConfig(
                 system_instruction=system_prompt,
-                temperature=0,
+                **_temperature_kwargs(),
             )
         )
         self._emit_usage("gemini-2.0-flash", response)
@@ -152,7 +166,7 @@ class LLMClient:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_message},
                 ],
-                temperature=0,
+                **_temperature_kwargs(),
             )
         self._emit_usage(model, response)
         return response.choices[0].message.content
@@ -164,7 +178,7 @@ class LLMClient:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_message},
             ],
-            temperature=0,
+            **_temperature_kwargs(),
         )
         self._emit_usage(LITELLM_MODEL, response)
         return response.choices[0].message.content
@@ -197,7 +211,7 @@ class LLMClient:
             contents=user_message,
             config=types.GenerateContentConfig(
                 system_instruction=system_prompt,
-                temperature=0,
+                **_temperature_kwargs(),
             ),
         ):
             if chunk.text:
@@ -213,7 +227,7 @@ class LLMClient:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_message},
                 ],
-                temperature=0,
+                **_temperature_kwargs(),
                 stream=True,
             )
             for chunk in stream:
@@ -228,7 +242,7 @@ class LLMClient:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_message},
             ],
-            temperature=0,
+            **_temperature_kwargs(),
             stream=True,
         )
         for chunk in stream:
