@@ -10,12 +10,12 @@ golden set of cases through three hard gates:
 ## Run
 
 ```bash
-python -m evals.run --agent matching     # evaluate one agent
-python -m evals.run --all                # evaluate all 7 agents
-python -m evals.run --all --workers 6    # ...in parallel (default is 6)
-python -m evals.run --all --workers 1    # serial (one case at a time)
-python -m evals.run --agent matching --samples 3   # majority-vote the judge (tames variance)
-python -m evals.run --agent matching --json out.json   # also write the JSON report
+uv run python -m evals.run --agent matching     # evaluate one agent
+uv run python -m evals.run --all                # evaluate all 7 agents
+uv run python -m evals.run --all --workers 6    # ...in parallel (default is 6)
+uv run python -m evals.run --all --workers 1    # serial (one case at a time)
+uv run python -m evals.run --agent matching --samples 3   # majority-vote the judge (tames variance)
+uv run python -m evals.run --agent matching --json out.json   # also write the JSON report
 ```
 
 Needs an LLM provider configured in `.env` (the judge + agents call the model).
@@ -47,15 +47,15 @@ from a *pre-existing* one.
 first make the agent pass:
 
 ```bash
-python -m evals.run --agent matching
+uv run python -m evals.run --agent matching
 # → "PASSED — all hard gates green."  (exit 0)
 ```
 
 ### Step 2 — create / refresh the baseline
 
 ```bash
-python -m evals.run --agent matching --update-baseline    # one agent
-python -m evals.run --all --update-baseline               # all agents
+uv run python -m evals.run --agent matching --update-baseline    # one agent
+uv run python -m evals.run --all --update-baseline               # all agents
 ```
 
 This writes `evals/baselines/current/matching.json`:
@@ -79,7 +79,7 @@ git add evals/baselines/current/ && git commit -m "evals: capture matching basel
 Just run normally — any agent that has a baseline is compared automatically:
 
 ```bash
-python -m evals.run --agent matching      # or --all
+uv run python -m evals.run --agent matching      # or --all
 ```
 
 - A case that **passed in the baseline but fails now** is marked
