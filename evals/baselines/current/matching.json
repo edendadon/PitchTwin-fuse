@@ -1,0 +1,21 @@
+{
+  "agent": "matching",
+  "captured_at": "2026-06-24T10:33:03.360534+00:00",
+  "cases": {
+    "adversarial_no_kubernetes": {
+      "passed": true
+    },
+    "edge_minimal_context": {
+      "passed": true
+    },
+    "edge_sparse_profile": {
+      "passed": true
+    },
+    "happy_healthcare": {
+      "passed": true
+    },
+    "happy_novapay": {
+      "passed": true
+    }
+  }
+}

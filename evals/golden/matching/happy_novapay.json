@@ -1,0 +1,111 @@
+{
+  "id": "happy_novapay",
+  "agent": "matching",
+  "description": "Strong AWS/microservices consultant matched to NovaPay fintech migration brief.",
+  "tags": [
+    "happy"
+  ],
+  "source": {
+    "structured_profile": {
+      "name": "Alex Rivera",
+      "skills": [
+        "AWS",
+        "Microservices",
+        "Python",
+        "Kafka",
+        "Terraform"
+      ],
+      "experience": [
+        {
+          "company": "Tikal Tech",
+          "role": "Senior Consultant",
+          "description": "Led AWS cloud migration for a Tier-1 bank.",
+          "technologies": [
+            "AWS",
+            "Microservices"
+          ]
+        }
+      ],
+      "projects": [
+        {
+          "name": "Bank CloudShift",
+          "description": "Full cloud migration to AWS.",
+          "technologies": [
+            "AWS"
+          ]
+        }
+      ]
+    },
+    "client_context": {
+      "company_name": "NovaPay Financial",
+      "industry": "FinTech / Payments",
+      "key_challenges": [
+        "Legacy Java monolith",
+        "PCI-DSS compliance"
+      ],
+      "required_skills": [
+        "AWS",
+        "Microservices",
+        "Payments domain"
+      ],
+      "tech_stack_mentioned": [
+        "AWS",
+        "Java",
+        "Kafka"
+      ],
+      "tone": "Direct, technical"
+    }
+  },
+  "input": {
+    "structured_profile": {
+      "name": "Alex Rivera",
+      "skills": [
+        "AWS",
+        "Microservices",
+        "Python",
+        "Kafka",
+        "Terraform"
+      ],
+      "experience": [
+        {
+          "company": "Tikal Tech",
+          "role": "Senior Consultant",
+          "description": "Led AWS cloud migration for a Tier-1 bank.",
+          "technologies": [
+            "AWS",
+            "Microservices"
+          ]
+        }
+      ],
+      "projects": [
+        {
+          "name": "Bank CloudShift",
+          "description": "Full cloud migration to AWS.",
+          "technologies": [
+            "AWS"
+          ]
+        }
+      ]
+    },
+    "client_context": {
+      "company_name": "NovaPay Financial",
+      "industry": "FinTech / Payments",
+      "key_challenges": [
+        "Legacy Java monolith",
+        "PCI-DSS compliance"
+      ],
+      "required_skills": [
+        "AWS",
+        "Microservices",
+        "Payments domain"
+      ],
+      "tech_stack_mentioned": [
+        "AWS",
+        "Java",
+        "Kafka"
+      ],
+      "tone": "Direct, technical"
+    }
+  },
+  "expectations": {}
+}

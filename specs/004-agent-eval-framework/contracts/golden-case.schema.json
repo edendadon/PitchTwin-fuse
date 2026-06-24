@@ -1,0 +1,58 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "GoldenCase",
+  "description": "One evaluation scenario for one PitchTwin agent. Stored at evals/golden/<agent>/<id>.json",
+  "type": "object",
+  "required": ["id", "agent", "description", "tags", "source", "input"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9_-]*$",
+      "description": "Unique within the agent; matches the filename stem."
+    },
+    "agent": {
+      "type": "string",
+      "enum": ["profile", "client_research", "matching", "writer", "gap", "persona", "debrief"],
+      "description": "Must equal the parent directory name."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1
+    },
+    "tags": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "enum": ["happy", "edge", "adversarial"] }
+    },
+    "source": {
+      "type": "object",
+      "description": "Ground-truth source data the output must stay faithful to (e.g. structured profile and/or client context). Used by hallucination + factual gates."
+    },
+    "input": {
+      "type": "object",
+      "description": "Exact arguments passed to the agent. Shape depends on the agent (see data-model)."
+    },
+    "expectations": {
+      "type": "object",
+      "description": "Optional per-case overrides on top of schema + global rules.",
+      "additionalProperties": true,
+      "properties": {
+        "must_not_claim": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Strings/skills the output must NOT assert (adversarial grounding)."
+        },
+        "must_decline": {
+          "type": "boolean",
+          "description": "Persona only: the response must be an honest declination."
+        },
+        "expected_enums": {
+          "type": "object",
+          "description": "Optional tightening of allowed enum values for this case."
+        },
+        "notes": { "type": "string" }
+      }
+    }
+  }
+}

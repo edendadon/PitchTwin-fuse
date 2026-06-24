@@ -1,0 +1,93 @@
+{
+  "id": "happy_healthcare",
+  "agent": "matching",
+  "description": "Data-platform consultant matched to a healthcare analytics modernization brief.",
+  "tags": [
+    "happy"
+  ],
+  "source": {
+    "structured_profile": {
+      "name": "Dana Levi",
+      "skills": [
+        "Snowflake",
+        "dbt",
+        "Python",
+        "HIPAA compliance",
+        "ETL"
+      ],
+      "experience": [
+        {
+          "company": "DataCore",
+          "role": "Data Consultant",
+          "description": "Built HIPAA-compliant analytics warehouse for a hospital network.",
+          "technologies": [
+            "Snowflake",
+            "dbt"
+          ]
+        }
+      ],
+      "projects": []
+    },
+    "client_context": {
+      "company_name": "MediTrend",
+      "industry": "Healthcare analytics",
+      "key_challenges": [
+        "Fragmented reporting",
+        "HIPAA compliance"
+      ],
+      "required_skills": [
+        "Snowflake",
+        "HIPAA compliance",
+        "ETL"
+      ],
+      "tech_stack_mentioned": [
+        "Snowflake",
+        "dbt"
+      ],
+      "tone": "Careful, compliance-focused"
+    }
+  },
+  "input": {
+    "structured_profile": {
+      "name": "Dana Levi",
+      "skills": [
+        "Snowflake",
+        "dbt",
+        "Python",
+        "HIPAA compliance",
+        "ETL"
+      ],
+      "experience": [
+        {
+          "company": "DataCore",
+          "role": "Data Consultant",
+          "description": "Built HIPAA-compliant analytics warehouse for a hospital network.",
+          "technologies": [
+            "Snowflake",
+            "dbt"
+          ]
+        }
+      ],
+      "projects": []
+    },
+    "client_context": {
+      "company_name": "MediTrend",
+      "industry": "Healthcare analytics",
+      "key_challenges": [
+        "Fragmented reporting",
+        "HIPAA compliance"
+      ],
+      "required_skills": [
+        "Snowflake",
+        "HIPAA compliance",
+        "ETL"
+      ],
+      "tech_stack_mentioned": [
+        "Snowflake",
+        "dbt"
+      ],
+      "tone": "Careful, compliance-focused"
+    }
+  },
+  "expectations": {}
+}
