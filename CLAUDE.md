@@ -1,3 +1,13 @@
+# PitchTwin — Working Agreement
+
+> Hand-authored. Keep this section **above** the GitNexus block so `gitnexus analyze` regeneration (which only rewrites content between the `gitnexus:start`/`gitnexus:end` markers) doesn't overwrite it.
+
+## Worktree Discipline
+
+- **Always work in your own isolated git worktree on a feature branch created from `main`.** Never edit files directly in the shared main checkout — its branch can change underneath you, so files you are editing may move or disappear mid-task.
+- Create the worktree from the up-to-date remote base: `git worktree add .worktrees/<branch> -b <branch> origin/main`.
+- Never stack feature work on another feature branch; always branch from `main`.
+
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 

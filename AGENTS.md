@@ -88,6 +88,7 @@ tests/test_agents.py # Unit tests with mock LLM
 - No hallucination: Persona Agent system prompt enforces grounding in profile only
 - Tests use `MockLLMClient` — no real API calls
 - **Every PR must have a description.** No PR without a description will be merged.
+- **Work in an isolated git worktree on a feature branch off `main`** (`git worktree add .worktrees/<branch> -b <branch> origin/main`). Never edit files directly in the shared main checkout — its branch can change underneath you, moving files mid-task. Never stack feature work on another feature branch.
 
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
