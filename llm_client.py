@@ -104,6 +104,69 @@ class LLMClient:
         )
         return response.choices[0].message.content
 
+    def call_stream(self, system_prompt: str, user_message: str):
+        """
+        Stream LLM response as token chunks.
+        Yields string tokens as they arrive from the provider.
+        Falls back to yielding the full response as a single chunk on error.
+        No retries — streaming is best-effort.
+        """
+        try:
+            if self.provider == "gemini":
+                yield from self._stream_gemini(system_prompt, user_message)
+            elif self.provider == "groq":
+                yield from self._stream_groq(system_prompt, user_message)
+            elif self.provider == "litellm":
+                yield from self._stream_litellm(system_prompt, user_message)
+            else:
+                raise ValueError(f"Unknown provider: {self.provider}")
+        except Exception as e:
+            print(f"[LLMClient] Streaming failed, falling back to non-streaming: {e}")
+            # Fallback: yield the full response as a single chunk
+            yield self.call(system_prompt, user_message)
+
+    def _stream_gemini(self, system_prompt: str, user_message: str):
+        import google.genai.types as types
+        for chunk in self._gemini_client.models.generate_content_stream(
+            model="gemini-2.0-flash",
+            contents=user_message,
+            config=types.GenerateContentConfig(
+                system_instruction=system_prompt,
+            ),
+        ):
+            if chunk.text:
+                yield chunk.text
+
+    def _stream_groq(self, system_prompt: str, user_message: str):
+        model = "llama-3.3-70b-versatile"
+        with logfire.span("groq chat completion stream", model=model):
+            stream = self._groq_client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_message},
+                ],
+                stream=True,
+            )
+            for chunk in stream:
+                token = chunk.choices[0].delta.content
+                if token is not None:
+                    yield token
+
+    def _stream_litellm(self, system_prompt: str, user_message: str):
+        stream = self._litellm_client.chat.completions.create(
+            model=LITELLM_MODEL,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message},
+            ],
+            stream=True,
+        )
+        for chunk in stream:
+            token = chunk.choices[0].delta.content
+            if token is not None:
+                yield token
+
     def call_json(self, system_prompt: str, user_message: str) -> dict:
         """
         Call LLM and parse JSON response.

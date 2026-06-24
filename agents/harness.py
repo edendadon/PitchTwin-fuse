@@ -102,6 +102,22 @@ class AgentHarness:
         _trace(self.name, "ok", latency_ms, retries, valid, unsupported)
         return result
 
+    def run_stream(self, user_message):
+        """
+        Stream the agent response as token chunks.
+        Only supported for mode="text" (persona agent).
+        Yields string tokens and emits a trace on completion.
+        """
+        if self.mode != "text":
+            raise ValueError(f"run_stream() only supports mode='text', got '{self.mode}'")
+
+        start = time.monotonic()
+        try:
+            yield from self.llm.call_stream(self.system_prompt, user_message)
+        finally:
+            latency_ms = int((time.monotonic() - start) * 1000)
+            _trace(self.name, "ok", latency_ms, 0, True)
+
     def _run_text(self, user_message) -> str:
         return self.llm.call(self.system_prompt, user_message).strip()
 

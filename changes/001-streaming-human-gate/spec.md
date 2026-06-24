@@ -10,7 +10,7 @@
 1. `run_persona_agent_stream()` exists in `agents/persona_agent.py` and yields tokens as a generator
 2. `twin_chat.html` consumes the streaming endpoint via SSE (`EventSource`) and renders tokens incrementally
 3. `HumanGateNode` is integrated into the orchestrator after Phase 2 (combined agent) and before `create_twin_session`
-4. `GET /proposal/<id>/approve` route creates a twin session upon consultant approval
+4. `POST /proposal/<id>/approve` route creates a twin session upon consultant approval
 5. `GET /proposal/<id>/status` route returns one of `READY`, `AWAITING_APPROVAL`, `GENERATING`
 6. Existing tests pass; new functionality has corresponding test coverage
 
@@ -34,6 +34,7 @@
 - Each SSE event contains a token chunk: `data: {"token": "..."}\n\n`
 - Final event signals completion: `data: {"done": true}\n\n`
 - Transcript is appended to DB after full response is assembled
+- On mid-stream client disconnect, the partial response is discarded (not saved to transcript); the client re-sends the message on reconnect
 
 ### FR-3: Frontend SSE Consumption
 - `twin_chat.html` uses `EventSource` or `fetch` with streaming reader to consume SSE
@@ -43,19 +44,30 @@
 
 ### FR-4: Human Gate Node
 - Proposal status lifecycle: `generating` → `awaiting_approval` → `ready`
-- After Phase 2 (combined agent) completes, proposal is saved with status `awaiting_approval` (not `ready`)
+- Pipeline runs in a background thread: proposal is created with status `generating` immediately, consultant is redirected to the proposal page which polls `/proposal/<id>/status` every 15s
+- When the pipeline completes, status transitions to `awaiting_approval`
 - Twin session is NOT auto-created; consultant must explicitly approve
 - `HumanGateNode` is a conceptual gate in the orchestrator flow (not necessarily a class — can be status-based)
 
 ### FR-5: Approval & Status Routes
-- `GET /proposal/<id>/approve`: Validates proposal exists and is in `awaiting_approval` status; creates twin session; sets proposal status to `ready`; redirects to proposal view
+- `POST /proposal/<id>/approve`: Validates proposal exists and is in `awaiting_approval` status; creates twin session; sets proposal status to `ready`; redirects to proposal view. Uses POST (not GET) for correct HTTP semantics and CSRF safety. If proposal is already `ready`, shows flash message "Already approved" and redirects (no duplicate session).
 - `GET /proposal/<id>/status`: Returns JSON `{"status": "GENERATING"|"AWAITING_APPROVAL"|"READY"}`
 - Proposal view page shows approval button when status is `awaiting_approval`
+- When proposal status is `generating`, the proposal view page polls `GET /proposal/<id>/status` every 15 seconds and auto-redirects to the proposal view on completion
 
 ### FR-6: LLM Client Streaming Support
 - `LLMClient` gains a `call_stream(system_prompt, user_message)` method returning a generator of string chunks
 - Implements streaming for all three providers (Gemini, Groq, LiteLLM/OpenAI)
 - Retries are not applied to streaming calls (stream-level retry is impractical)
+
+## Clarifications
+
+### Session 2026-06-24
+- Q: Should the approval route use GET (simple link) or POST (correct HTTP semantics, CSRF-safe)? → A: POST with a form button
+- Q: Should the proposal page poll for status updates during generation or require manual refresh? → A: Poll every 15s, auto-redirect on completion
+- Q: On mid-stream client disconnect, should partial tokens be saved or discarded? → A: Discard partial response; client re-sends on reconnect
+- Q: Should the pipeline run synchronously (blocking the request) or in a background thread? → A: Background thread; set `generating` immediately, redirect to proposal page with polling, transition to `awaiting_approval` on completion
+- Q: What happens on duplicate approval (already-approved proposal)? → A: Flash message "Already approved" and redirect to proposal view
 
 ## Delta Description
 
@@ -65,8 +77,8 @@
 | `llm_client.py` | Add `call_stream()` method with per-provider streaming |
 | `agents/persona_agent.py` | Add `run_persona_agent_stream()` generator function |
 | `agents/harness.py` | Add `run_stream()` method for text-mode streaming with tracing |
-| `orchestrator.py` | Change `run_proposal_pipeline` to set status `awaiting_approval`; remove auto `create_twin_session` call |
-| `app.py` | Add `/proposal/<id>/approve`, `/proposal/<id>/status`, `/twin/<id>/message/stream` routes; remove auto-create twin session from `new_proposal` |
+| `orchestrator.py` | Change `run_proposal_pipeline` to set status `awaiting_approval` on completion; remove auto `create_twin_session` call; pipeline invoked from background thread |
+| `app.py` | Add `POST /proposal/<id>/approve`, `GET /proposal/<id>/status`, `POST /twin/<id>/message/stream` routes; remove auto-create twin session from `new_proposal` |
 | `models.py` | Extend `Proposal.status` docstring to include `generating`, `awaiting_approval` |
 | `templates/twin_chat.html` | Replace fetch-based messaging with SSE streaming reader |
 | `templates/proposal.html` | Add approval button when status is `awaiting_approval` |

@@ -136,4 +136,5 @@ This project is indexed by GitNexus as **PitchTwin-fuse** (218 symbols, 535 rela
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan
+at specs/005-streaming-human-gate/plan.md
 <!-- SPECKIT END -->

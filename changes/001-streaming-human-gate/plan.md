@@ -42,7 +42,9 @@ Add `run_persona_agent_stream(user_message, conversation_history, system_prompt,
 
 Modify `run_proposal_pipeline`:
 
-- Set `status="awaiting_approval"` instead of `status="ready"`
+- Pipeline is launched in a background thread from the Flask route
+- Proposal is created with `status="generating"` before the thread starts
+- On pipeline completion, status transitions to `status="awaiting_approval"`
 - Remove the `create_twin_session` call from the pipeline
 - `create_twin_session` is now only called from the approval route
 
@@ -51,6 +53,7 @@ Add `handle_twin_message_stream(session_id, user_message) -> Generator[str, None
 - Same setup as `handle_twin_message` but calls `run_persona_agent_stream`
 - Yields tokens to caller
 - After generator is exhausted, appends full response to transcript
+- On mid-stream client disconnect, partial response is discarded (not saved to transcript)
 
 ### Layer 5: Flask Routes (`app.py`)
 
@@ -59,13 +62,13 @@ Add `handle_twin_message_stream(session_id, user_message) -> Generator[str, None
 | Route | Method | Behavior |
 |-------|--------|----------|
 | `/proposal/<id>/status` | GET | Returns `{"status": "GENERATING\|AWAITING_APPROVAL\|READY"}` |
-| `/proposal/<id>/approve` | GET | Validates `awaiting_approval`, creates session, sets `ready`, redirects |
+| `/proposal/<id>/approve` | POST | Validates `awaiting_approval`, creates session, sets `ready`, redirects. If already `ready`, flash "Already approved" and redirect. |
 | `/twin/<id>/message/stream` | POST | SSE endpoint wrapping `handle_twin_message_stream` |
 
 **Modified routes:**
 
-- `new_proposal`: Remove auto `create_twin_session`; pipeline now ends at `awaiting_approval`
-- `view_proposal`: Show approval button when status is `awaiting_approval`
+- `new_proposal`: Remove auto `create_twin_session`; create proposal with `generating` status, launch pipeline in background thread, redirect to proposal view immediately
+- `view_proposal`: Show approval button (form POST) when status is `awaiting_approval`; show spinner with 15s polling when `generating`
 
 **SSE response pattern:**
 ```python
@@ -96,7 +99,7 @@ Fallback: If `ReadableStream` is unavailable (old browsers), fall back to the ex
 
 ### Layer 7: Proposal Template (`templates/proposal.html`)
 
-- When `proposal.status == 'awaiting_approval'`: show "Approve & Create Twin" button linking to `/proposal/<id>/approve`
+- When `proposal.status == 'awaiting_approval'`: show "Approve & Create Twin" as a form POST button to `/proposal/<id>/approve`
 - When `proposal.status == 'ready'` and twin session exists: show existing twin link
 - When `proposal.status == 'generating'`: show spinner/status indicator
 
