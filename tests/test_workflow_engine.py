@@ -237,7 +237,7 @@ class TestGlobalTimeout:
         trace_store = MemoryStore()
 
         def slow_agent(input_data):
-            time.sleep(0.5)
+            time.sleep(5)  # longer than the global timeout below
             return {"result": "slow"}
 
         dag = [

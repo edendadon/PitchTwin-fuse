@@ -26,7 +26,10 @@ from typing import Any, Callable
 class NodeConfig:
     max_retries: int = 2
     timeout_sec: int = 60
-    max_iterations: int = 5
+    # Single-shot by default. Set max_iterations > 1 to opt a node into loop
+    # detection: it is re-fired while it keeps producing identical output and
+    # halts with MaxIterationsExceeded once it hits this many identical results.
+    max_iterations: int = 1
     max_wait_sec: int | None = None  # for human_gate nodes
 
 
@@ -47,7 +50,12 @@ class WorkflowError(Exception):
 
 
 class WorkflowTimeout(WorkflowError):
-    """Raised when global workflow timeout is exceeded."""
+    """Raised when the global workflow timeout is exceeded. Aborts the pipeline."""
+    pass
+
+
+class NodeTimeout(WorkflowError):
+    """Raised when a single node exceeds its own timeout_sec. Retryable (counts as a node failure)."""
     pass
 
 
@@ -95,7 +103,7 @@ class WorkflowEngine:
             config = NodeConfig(
                 max_retries=config_dict.get("max_retries", 2),
                 timeout_sec=config_dict.get("timeout_sec", 60),
-                max_iterations=config_dict.get("max_iterations", 5),
+                max_iterations=config_dict.get("max_iterations", 1),
                 max_wait_sec=config_dict.get("max_wait_sec"),
             )
             node = WorkflowNode(
@@ -167,11 +175,21 @@ class WorkflowEngine:
         if agent_fn is None:
             raise WorkflowError(f"AgentNode {node.id} has no agent_fn")
 
-        output_hash_buffer: list[str] = []
+        cfg = node.config
+        # max_iterations <= 1 => single-shot node (the common case for the
+        # proposal pipeline). max_iterations > 1 engages loop detection: the
+        # agent is fired repeatedly and, if it yields the same output every
+        # time without making progress, the pipeline halts.
+        max_iterations = max(1, cfg.max_iterations)
+        hash_buffer: list[str] = []
         last_error: str | None = None
 
-        for attempt in range(node.config.max_retries + 1):
-            try:
+        for _iteration in range(max_iterations):
+            succeeded = False
+            result: Any = None
+
+            # Per-invocation retry loop for transient failures.
+            for attempt in range(cfg.max_retries + 1):
                 self.trace_store.save_trace({
                     "trace_id": trace_id,
                     "node_id": node.id,
@@ -180,67 +198,83 @@ class WorkflowEngine:
                     "duration_ms": None,
                     "error": None,
                 })
-
                 start = time.time()
-                result = self._call_with_timeout(agent_fn, input_data, node.config.timeout_sec)
-                duration_ms = int((time.time() - start) * 1000)
-
-                result_str = json.dumps(result, sort_keys=True)
-                result_hash = hashlib.sha256(result_str.encode()).hexdigest()
-
-                output_hash_buffer.append(result_hash)
-                if len(output_hash_buffer) > node.config.max_iterations:
-                    output_hash_buffer.pop(0)
-
-                if (len(output_hash_buffer) == node.config.max_iterations and
-                        len(set(output_hash_buffer)) == 1):
+                try:
+                    result = self._call_with_timeout(agent_fn, input_data, cfg.timeout_sec)
+                    duration_ms = int((time.time() - start) * 1000)
+                    self.trace_store.save_trace({
+                        "trace_id": trace_id,
+                        "node_id": node.id,
+                        "event": "completed",
+                        "timestamp": datetime.utcnow().isoformat(),
+                        "duration_ms": duration_ms,
+                        "error": None,
+                    })
+                    succeeded = True
+                    break
+                except WorkflowTimeout:
+                    # Global deadline blown — abort the entire workflow.
+                    self.trace_store.save_trace({
+                        "trace_id": trace_id,
+                        "node_id": node.id,
+                        "event": "timed_out",
+                        "timestamp": datetime.utcnow().isoformat(),
+                        "duration_ms": int((time.time() - start) * 1000),
+                        "error": f"global timeout of {self.global_timeout_sec}s exceeded",
+                    })
+                    raise
+                except Exception as e:
+                    last_error = str(e)
                     self.trace_store.save_trace({
                         "trace_id": trace_id,
                         "node_id": node.id,
                         "event": "failed",
                         "timestamp": datetime.utcnow().isoformat(),
-                        "duration_ms": duration_ms,
-                        "error": f"max_iterations exceeded ({node.config.max_iterations} identical outputs)",
+                        "duration_ms": int((time.time() - start) * 1000),
+                        "error": f"attempt {attempt + 1}: {last_error}",
                     })
-                    raise MaxIterationsExceeded(
-                        f"AgentNode {node.id}: {node.config.max_iterations} identical outputs, loop detected"
-                    )
 
-                self.trace_store.save_trace({
-                    "trace_id": trace_id,
-                    "node_id": node.id,
-                    "event": "completed",
-                    "timestamp": datetime.utcnow().isoformat(),
-                    "duration_ms": duration_ms,
-                    "error": None,
-                })
-
-                self._circuit_failures = 0
-                return result, None
-
-            except MaxIterationsExceeded:
-                raise
-            except Exception as e:
-                last_error = str(e)
+            if not succeeded:
+                # Retries exhausted for this invocation -> node failure.
+                self._circuit_failures += 1
                 self.trace_store.save_trace({
                     "trace_id": trace_id,
                     "node_id": node.id,
                     "event": "failed",
                     "timestamp": datetime.utcnow().isoformat(),
                     "duration_ms": None,
-                    "error": f"attempt {attempt + 1}: {last_error}",
+                    "error": last_error,
                 })
+                return None, last_error
 
-        self._circuit_failures += 1
+            result_hash = hashlib.sha256(
+                json.dumps(result, sort_keys=True, default=str).encode()
+            ).hexdigest()
+
+            if max_iterations == 1:
+                # Single-shot: accept the first successful output.
+                self._circuit_failures = 0
+                return result, None
+
+            if hash_buffer and result_hash != hash_buffer[-1]:
+                # Output changed -> the agent made progress, accept it.
+                self._circuit_failures = 0
+                return result, None
+
+            hash_buffer.append(result_hash)
+
+        # Fired max_iterations times with identical output -> loop detected.
         self.trace_store.save_trace({
             "trace_id": trace_id,
             "node_id": node.id,
             "event": "failed",
             "timestamp": datetime.utcnow().isoformat(),
             "duration_ms": None,
-            "error": last_error,
+            "error": f"max_iterations exceeded ({max_iterations} identical outputs)",
         })
-        return None, last_error
+        raise MaxIterationsExceeded(
+            f"AgentNode {node.id}: {max_iterations} identical outputs, loop detected"
+        )
 
     def _execute_parallel_node(self, node: WorkflowNode, input_data: dict, trace_id: str) -> tuple[dict, str | None]:
         child_outputs: dict[str, Any] = {}
@@ -376,12 +410,26 @@ class WorkflowEngine:
             except Exception as e:
                 error_holder.put(e)
 
+        # Cap the wait at whatever is left of the global workflow budget so a
+        # single long-running node cannot blow past the global timeout.
+        effective_timeout = timeout_sec
+        deadline = getattr(self, "_deadline", None)
+        if deadline is not None:
+            remaining = deadline - time.time()
+            effective_timeout = max(0.0, min(timeout_sec, remaining))
+
         t = threading.Thread(target=wrapper, daemon=True)
         t.start()
-        t.join(timeout=timeout_sec)
+        t.join(timeout=effective_timeout)
 
         if t.is_alive():
-            raise WorkflowTimeout(f"Function {fn.__name__} timed out after {timeout_sec}s")
+            if deadline is not None and time.time() >= deadline:
+                raise WorkflowTimeout(
+                    f"Global timeout of {self.global_timeout_sec}s exceeded"
+                )
+            raise NodeTimeout(
+                f"Node function {getattr(fn, '__name__', 'agent')} timed out after {timeout_sec}s"
+            )
         if not error_holder.empty():
             raise error_holder.get()
         if not result_holder.empty():
@@ -391,6 +439,7 @@ class WorkflowEngine:
     def execute(self, proposal_id: str, context: dict) -> dict:
         trace_id = str(uuid.uuid4())
         global_start = time.time()
+        self._deadline = global_start + self.global_timeout_sec
         completed: set[str] = set()
         outputs: dict[str, Any] = {}
 
@@ -445,7 +494,7 @@ class WorkflowEngine:
                 self.trace_store.save_trace({
                     "trace_id": trace_id,
                     "node_id": node.id,
-                    "event": "circuit_breaker",
+                    "event": "timed_out",
                     "timestamp": datetime.utcnow().isoformat(),
                     "duration_ms": None,
                     "error": "global timeout exceeded",
@@ -464,10 +513,13 @@ class WorkflowEngine:
                     f"Global timeout of {self.global_timeout_sec}s exceeded at node {node.id}"
                 )
 
-            input_data = context
-            for inp_id in node.inputs:
-                if inp_id in outputs:
-                    input_data = outputs[inp_id]
+            # Root nodes receive the workflow context; downstream nodes receive a
+            # dict mapping each upstream node id to its output, so multi-input
+            # nodes (e.g. the combined agent) can read each dependency by name.
+            if node.inputs:
+                input_data = {inp_id: outputs.get(inp_id) for inp_id in node.inputs}
+            else:
+                input_data = context
 
             result, error = self._execute_node(node, input_data, trace_id)
 

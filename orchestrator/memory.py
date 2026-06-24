@@ -7,18 +7,49 @@ Uses the existing db.py connection pattern. Provides:
 """
 
 import json
+import os
 import sqlite3
 from datetime import datetime
 from typing import Any
 
-DB_PATH = "data/pitchtwin.db"
+# Keep this in sync with db.py so checkpoints and proposals live in the same DB.
+DB_PATH = os.getenv("DB_PATH", "data/pitchtwin.db")
+
+_SCHEMA = """
+CREATE TABLE IF NOT EXISTS workflow_checkpoints (
+    proposal_id TEXT NOT NULL,
+    trace_id TEXT NOT NULL,
+    node_id TEXT NOT NULL,
+    phase TEXT NOT NULL,
+    input_data TEXT NOT NULL,
+    output_data TEXT NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('completed', 'failed', 'in_progress')),
+    created_at TEXT NOT NULL,
+    PRIMARY KEY (proposal_id, node_id)
+);
+CREATE TABLE IF NOT EXISTS execution_traces (
+    trace_id TEXT NOT NULL,
+    node_id TEXT NOT NULL,
+    event TEXT NOT NULL CHECK (event IN ('started', 'completed', 'failed', 'timed_out', 'circuit_breaker')),
+    timestamp TEXT NOT NULL,
+    duration_ms INTEGER CHECK (duration_ms IS NULL OR duration_ms >= 0),
+    error TEXT,
+    PRIMARY KEY (trace_id, node_id, event, timestamp)
+);
+CREATE INDEX IF NOT EXISTS idx_checkpoint_proposal_status ON workflow_checkpoints (proposal_id, status);
+CREATE INDEX IF NOT EXISTS idx_trace_trace_id ON execution_traces (trace_id);
+"""
 
 
 def _get_connection():
-    import os
-    os.makedirs("data", exist_ok=True)
+    db_dir = os.path.dirname(DB_PATH)
+    if db_dir:
+        os.makedirs(db_dir, exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
+    # Idempotently ensure the workflow tables exist so the store is usable
+    # standalone (tests, CLI) even if db.init_db() has not been called.
+    conn.executescript(_SCHEMA)
     return conn
 
 
