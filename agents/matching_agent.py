@@ -6,6 +6,12 @@ Output: ranked relevance map — which parts of the consultant's background matt
 Runs sequentially after both parallel agents complete. This is the central HANDOFF point.
 """
 
+import json
+
+from agents.harness import AgentHarness
+from agents.schemas import MatchingOutput
+
+
 SYSTEM_PROMPT = """You are a strategic consultant matching expert.
 
 You will receive:
@@ -58,12 +64,12 @@ def run_matching_agent(structured_profile: dict, client_context: dict, llm_clien
     Returns:
         Relevance map dict
     """
-    import json
-    print("[Matching Agent] Running...")
+    harness = AgentHarness(
+        llm_client, name="matching", system_prompt=SYSTEM_PROMPT,
+        output_schema=MatchingOutput,
+    )
     user_message = json.dumps({
         "consultant_profile": structured_profile,
-        "client_context": client_context
+        "client_context": client_context,
     })
-    result = llm_client.call_json(SYSTEM_PROMPT, user_message)
-    print("[Matching Agent] Done.")
-    return result
+    return harness.run(user_message)

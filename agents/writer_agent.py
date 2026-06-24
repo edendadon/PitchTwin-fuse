@@ -8,6 +8,9 @@ Runs sequentially after Matching Agent.
 
 import json
 
+from agents.harness import AgentHarness
+from agents.schemas import WriterOutput
+
 SYSTEM_PROMPT = """You are an expert proposal writer for technology consulting firms.
 
 You will receive:
@@ -52,12 +55,13 @@ def run_writer_agent(relevance_map: dict, structured_profile: dict, client_conte
     Returns:
         Dict with tailored_cv, bio, talking_points
     """
-    print("[Writer Agent] Running...")
+    harness = AgentHarness(
+        llm_client, name="writer", system_prompt=SYSTEM_PROMPT,
+        output_schema=WriterOutput,
+    )
     user_message = json.dumps({
         "relevance_map": relevance_map,
         "consultant_profile": structured_profile,
-        "client_context": client_context
+        "client_context": client_context,
     })
-    result = llm_client.call_json(SYSTEM_PROMPT, user_message)
-    print("[Writer Agent] Done.")
-    return result
+    return harness.run(user_message)
