@@ -46,7 +46,9 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     sel.add_argument("--agent", help="agent to evaluate", choices=AGENT_NAMES)
     sel.add_argument("--all", action="store_true", help="evaluate all registered agents")
     p.add_argument("--update-baseline", action="store_true", help="(US2) capture/refresh baseline")
-    p.add_argument("--samples", type=int, default=1, help="LLM-judge samples (majority vote)")
+    p.add_argument("--samples", type=int, default=3,
+                   help="LLM-judge samples per case, majority vote (default 3 — "
+                        "suppresses single-call judge noise; use 1 for fast local checks)")
     p.add_argument("--workers", type=int, default=6,
                    help="parallel cases (pytest-xdist); 1 = serial")
     p.add_argument("--json", dest="json_out", help="also write the JSON report to this path")

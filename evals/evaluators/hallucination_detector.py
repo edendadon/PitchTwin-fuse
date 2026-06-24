@@ -54,6 +54,16 @@ The following are ALWAYS GROUNDED — never flag them:
 Only set grounded=false when the OUTPUT credits the CONSULTANT with a concrete
 skill/employer/cert/project/metric that simply is not in the SOURCE.
 
+CONFIDENCE RULE (reduce false positives):
+- Flag a phrase ONLY if you are confident it is a concrete fact ABSENT from the
+  SOURCE. When in doubt, treat it as grounded.
+- Skills/technologies listed in the SOURCE may be mentioned in ANY combination
+  or phrasing (e.g. "deployed with Terraform and Kafka" when both are listed) —
+  that is grounded, not a new claim.
+- Relating the consultant's real experience to the client's challenge is grounded
+  framing; only flag it if it asserts a SPECIFIC achievement (a named project,
+  client, or metric) that the SOURCE does not contain.
+
 Respond with valid JSON only — no markdown, no prose:
 {"grounded": true, "fabricated_claims": []}
 or, when ungrounded:
