@@ -49,8 +49,10 @@ Only mark grounded=false when the OUTPUT states a NEW concrete fact about the
 consultant that the SOURCE does not support (e.g. a skill, employer, cert, or
 metric that simply isn't there).
 
-Respond with the structured result only: grounded (bool) and, when false, the
-list of fabricated concrete facts (verbatim short phrases from the OUTPUT)."""
+Respond with valid JSON only — no markdown, no prose:
+{"grounded": true, "fabricated_claims": []}
+or, when ungrounded:
+{"grounded": false, "fabricated_claims": ["short verbatim phrase from the OUTPUT", ...]}"""
 
 
 class JudgeVerdict(BaseModel):
@@ -62,31 +64,26 @@ JudgeFn = Callable[[dict, Any, int], JudgeVerdict]
 
 
 def _default_judge(source: dict, output: Any, samples: int = 1) -> JudgeVerdict:
-    """Build a temperature-0 pydantic-ai judge and majority-vote over `samples`."""
+    """Judge via the project's LLMClient (call_json) and majority-vote over `samples`.
+
+    Uses the same client the agents use (post Issue #1 harness migration), so it
+    inherits the configured provider and needs no separate model setup.
+    """
     try:
-        from pydantic_ai import Agent
+        from llm_client import LLMClient
 
-        from agents.pydantic_ai_setup import create_model
-
-        agent = Agent(create_model(), output_type=JudgeVerdict, system_prompt=JUDGE_SYSTEM)
-        prompt = (
+        llm = LLMClient()
+        user_message = (
             "SOURCE:\n"
             + json.dumps(source, indent=2)
             + "\n\nOUTPUT:\n"
             + (output if isinstance(output, str) else json.dumps(output, indent=2))
         )
-        # Determinism is opt-in: some providers (e.g. kimi-k2.5) reject
-        # temperature != 1, so only pin it when EVALS_JUDGE_TEMPERATURE is set.
-        # Otherwise rely on --samples majority voting to tame variance.
-        settings = {}
-        temp = os.environ.get("EVALS_JUDGE_TEMPERATURE")
-        if temp is not None:
-            settings["temperature"] = float(temp)
         votes: list[JudgeVerdict] = []
         for _ in range(max(1, samples)):
-            res = agent.run_sync(prompt, model_settings=settings or None)
-            votes.append(res.output)
-    except Exception as exc:  # provider/model failure
+            raw = llm.call_json(JUDGE_SYSTEM, user_message)
+            votes.append(JudgeVerdict.model_validate(raw))
+    except Exception as exc:  # provider/model/parse failure
         raise InfraError(f"hallucination judge unavailable: {type(exc).__name__}: {exc}") from exc
 
     grounded_votes = sum(1 for v in votes if v.grounded)

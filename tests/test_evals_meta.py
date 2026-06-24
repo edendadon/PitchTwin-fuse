@@ -49,12 +49,13 @@ def test_schema_gate_passes_on_valid_output():
     print("PASS: schema gate accepts valid output")
 
 
-def test_schema_gate_fails_on_out_of_range_score():
-    bad = _valid_matching_output(score=99)  # relevance_score must be <= 10
+def test_schema_gate_fails_on_missing_required_field():
+    # MatchingOutput requires `top_matches`; omit it to trigger a validation error.
+    bad = {"secondary_matches": [], "client_tone_match": "x", "headline_positioning": "y"}
     v = schema_validator.evaluate(_matching_case(), bad)
     assert v.status == Status.FAIL
-    assert "relevance_score" in str(v.evidence)
-    print("PASS: schema gate rejects out-of-range score")
+    assert "top_matches" in str(v.evidence)
+    print("PASS: schema gate rejects output missing a required field")
 
 
 def test_schema_gate_skips_when_agent_has_no_schema():

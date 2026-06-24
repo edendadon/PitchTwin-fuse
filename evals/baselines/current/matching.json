@@ -1,6 +1,6 @@
 {
   "agent": "matching",
-  "captured_at": "2026-06-24T10:03:38.328878+00:00",
+  "captured_at": "2026-06-24T10:33:03.360534+00:00",
   "cases": {
     "adversarial_no_kubernetes": {
       "passed": true
@@ -12,7 +12,7 @@
       "passed": true
     },
     "happy_healthcare": {
-      "passed": false
+      "passed": true
     },
     "happy_novapay": {
       "passed": true

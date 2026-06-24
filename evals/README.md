@@ -81,5 +81,5 @@ evals/
 └── baselines/current/  # regression baselines (US2)
 ```
 
-Tuning knobs: `EVALS_JUDGE_TEMPERATURE` (opt-in; some models reject ≠1),
-`--samples` for judge majority voting.
+The hallucination judge runs through the project's `LLMClient` (same provider as the
+agents). Use `--samples N` for judge majority voting to tame non-determinism.
