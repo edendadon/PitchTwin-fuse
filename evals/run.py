@@ -28,7 +28,7 @@ from pathlib import Path
 import pytest
 
 from evals import report as rpt
-from evals.harness import AGENT_NAMES, registered_agents
+from evals.harness import AGENT_NAMES, count_cases, registered_agents
 
 EVALS_DIR = Path(__file__).parent
 REPORT_PATH = EVALS_DIR / ".reports" / "last_run.json"
@@ -134,6 +134,16 @@ def main(argv: list[str] | None = None) -> int:
     if not agents:
         print("[evals] no registered agents to evaluate.", file=sys.stderr)
         return EXIT_USAGE
+
+    # Coverage gate (FR-016): every selected agent must have >= MIN_CASES golden
+    # cases. Checked before invoking the model so it is fast and free.
+    counts = count_cases()
+    short = rpt.coverage_failures(agents, counts)
+    if short:
+        print(f"\nCOVERAGE FAILURE: agent(s) with < {rpt.MIN_CASES} golden cases:")
+        for a in short:
+            print(f"  {a}: {counts.get(a, 0)} case(s)")
+        return EXIT_COVERAGE
 
     _run_pytest(agents, args.samples)
 
