@@ -2,9 +2,12 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+# Install uv
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /bin/uv
+
 # Install dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY pyproject.toml uv.lock ./
+RUN uv sync --frozen --no-dev
 
 # Copy application
 COPY . .
@@ -16,4 +19,4 @@ RUN mkdir -p /app/data
 EXPOSE 5000
 
 # Run the application
-CMD ["python", "app.py"]
+CMD ["uv", "run", "python", "app.py"]
