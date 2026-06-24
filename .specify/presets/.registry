@@ -39,9 +39,9 @@
       "installed_at": "2026-06-23T22:05:20.421556+00:00"
     },
     "agentic-change": {
-      "version": "1.1.0",
+      "version": "1.2.0",
       "source": "local",
-      "manifest_hash": "sha256:fef5d47313ac44cb53eceb15445f86300f39077de98d9a72ce67c3cc662e7976",
+      "manifest_hash": "sha256:057caf5925095c30e4acc939b6cdb331ebce37260ea4bbc7b59f901d2b7b225f",
       "enabled": true,
       "priority": 10,
       "registered_commands": {
@@ -59,7 +59,7 @@
         ]
       },
       "registered_skills": [],
-      "installed_at": "2026-06-23T22:05:20.688694+00:00"
+      "installed_at": "2026-06-24T07:45:59.606913+00:00"
     },
     "agentic-quick": {
       "version": "1.1.0",

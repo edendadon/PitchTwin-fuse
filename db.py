@@ -67,6 +67,31 @@ def init_db():
                 created_at TEXT NOT NULL,
                 FOREIGN KEY (proposal_id) REFERENCES proposals(id)
             );
+
+            CREATE TABLE IF NOT EXISTS workflow_checkpoints (
+                proposal_id TEXT NOT NULL,
+                trace_id TEXT NOT NULL,
+                node_id TEXT NOT NULL,
+                phase TEXT NOT NULL,
+                input_data TEXT NOT NULL,
+                output_data TEXT NOT NULL,
+                status TEXT NOT NULL CHECK (status IN ('completed', 'failed', 'in_progress')),
+                created_at TEXT NOT NULL,
+                PRIMARY KEY (proposal_id, node_id)
+            );
+
+            CREATE TABLE IF NOT EXISTS execution_traces (
+                trace_id TEXT NOT NULL,
+                node_id TEXT NOT NULL,
+                event TEXT NOT NULL CHECK (event IN ('started', 'completed', 'failed', 'timed_out', 'circuit_breaker')),
+                timestamp TEXT NOT NULL,
+                duration_ms INTEGER CHECK (duration_ms IS NULL OR duration_ms >= 0),
+                error TEXT,
+                PRIMARY KEY (trace_id, node_id, event, timestamp)
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_checkpoint_proposal_status ON workflow_checkpoints (proposal_id, status);
+            CREATE INDEX IF NOT EXISTS idx_trace_trace_id ON execution_traces (trace_id);
         """)
     print(f"[DB] Initialized at {DB_PATH}")
 

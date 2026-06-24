@@ -186,3 +186,29 @@ def client(mocker, fake_llm_cls):
     app_module.app.config.update(TESTING=True)
     with app_module.app.test_client() as c:
         yield c
+
+
+@pytest.fixture(autouse=True)
+def isolated_db(monkeypatch):
+    """
+    Give every test a fresh, schema-initialized SQLite database.
+
+    The workflow-engine tests instantiate MemoryStore() directly and reuse the
+    same proposal_id across tests, so a shared DB would cross-contaminate
+    checkpoints/traces. This points both the app DB layer (db.DB_PATH) and the
+    orchestrator store (orchestrator.memory.DB_PATH) at an isolated temp file per
+    test and creates the full schema (proposals, checkpoints, traces, ...).
+    """
+    db_fd, db_path = tempfile.mkstemp(suffix=".db")
+    os.close(db_fd)
+
+    import db as db_module
+    import orchestrator.memory as mem_module
+
+    monkeypatch.setattr(db_module, "DB_PATH", db_path)
+    monkeypatch.setattr(mem_module, "DB_PATH", db_path)
+    db_module.init_db()
+
+    yield db_path
+
+    os.unlink(db_path)
