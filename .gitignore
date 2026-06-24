@@ -41,3 +41,9 @@ evals/.reports/
 
 # Git worktrees (created by git-worktree tooling)
 .worktrees/
+
+# Test / tooling caches
+.pytest_cache/
+
+# Git worktrees (created by git-worktree tooling)
+.worktrees/
