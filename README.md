@@ -17,13 +17,24 @@ Open http://localhost:5000
 
 ---
 
-## Quick Start (Local)
+## Quick Start (Local with uv)
 
 ```bash
-pip install -r requirements.txt
+# Install uv if not already installed: https://docs.astral.sh/uv/getting-started/installation/
+uv sync
 cp .env.example .env
 # Edit .env with your API key
-python app.py
+uv run python app.py
+```
+
+Or install uv and run in one command:
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+uv sync
+cp .env.example .env
+# Edit .env with your API key
+uv run python app.py
 ```
 
 ---
@@ -73,7 +84,13 @@ See `spec/spec.arch` for the full blueprint.
 ## Running Tests
 
 ```bash
-python tests/test_agents.py
+uv run python -m pytest tests/ -v
+```
+
+Or with pytest directly:
+
+```bash
+uv run pytest tests/ -v
 ```
 
 Tests use a mock LLM client — no API calls required.
@@ -89,6 +106,8 @@ pitchtwin/
 ├── llm_client.py        # Gemini/Groq wrapper
 ├── db.py                # SQLite layer
 ├── models.py            # Dataclasses
+├── pyproject.toml       # Project config + dependencies (uv)
+├── uv.lock              # Locked dependency versions
 ├── agents/              # 7 specialized agents
 ├── templates/           # Flask Jinja2 templates
 ├── static/css/          # Minimal CSS

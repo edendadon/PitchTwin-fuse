@@ -4,10 +4,10 @@
 
 ```bash
 # Local (Python 3.11+)
-pip install -r requirements.txt
+uv sync
 cp .env.example .env
 # Edit .env with GEMINI_API_KEY or GROQ_API_KEY or LITELLM_API_KEY
-python3 app.py
+uv run python app.py
 
 # Docker
 docker-compose up --build
@@ -19,8 +19,8 @@ Open http://localhost:5000
 
 | Task | Command |
 |------|---------|
-| Run tests | `python3 tests/test_agents.py` |
-| Run app locally | `python3 app.py` |
+| Run tests | `uv run python -m pytest tests/test_agents.py` |
+| Run app locally | `uv run python app.py` |
 | Run with Docker | `docker-compose up --build` |
 | Health check | `curl http://localhost:5000/api/health` |
 
@@ -53,6 +53,8 @@ orchestrator.py     # Pipeline runner + threading
 llm_client.py       # LLM wrapper (Gemini/Groq/LiteLLM)
 db.py               # SQLite init + CRUD
 models.py           # Dataclasses: Profile, Proposal, TwinSession
+pyproject.toml      # Project config + dependencies (uv)
+uv.lock             # Locked dependency versions
 agents/             # 7 specialized agents
 spec/               # spec.plan, spec.tasks, spec.arch
 tests/test_agents.py # Unit tests with mock LLM
