@@ -8,6 +8,9 @@ Runs sequentially after Matching Agent (can run in parallel with Writer Agent).
 
 import json
 
+from agents.harness import AgentHarness
+from agents.schemas import GapAnalysisOutput
+
 SYSTEM_PROMPT = """You are a candid advisor to technology consultants preparing for pitches.
 
 You will receive:
@@ -52,11 +55,12 @@ def run_gap_agent(client_context: dict, structured_profile: dict, llm_client) ->
     Returns:
         Gap analysis dict
     """
-    print("[Gap Agent] Running...")
+    harness = AgentHarness(
+        llm_client, name="gap", system_prompt=SYSTEM_PROMPT,
+        output_schema=GapAnalysisOutput,
+    )
     user_message = json.dumps({
         "client_context": client_context,
-        "consultant_profile": structured_profile
+        "consultant_profile": structured_profile,
     })
-    result = llm_client.call_json(SYSTEM_PROMPT, user_message)
-    print("[Gap Agent] Done.")
-    return result
+    return harness.run(user_message)

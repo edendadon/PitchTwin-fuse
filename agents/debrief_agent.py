@@ -8,6 +8,9 @@ Triggered automatically when the client ends or exits the twin session.
 
 import json
 
+from agents.harness import AgentHarness
+from agents.schemas import DebriefOutput
+
 SYSTEM_PROMPT = """You are an expert sales intelligence analyst.
 
 You will receive a transcript of a conversation between a potential client and a consultant's digital twin.
@@ -55,8 +58,6 @@ def run_debrief_agent(transcript: list, llm_client) -> dict:
     Returns:
         Debrief report dict
     """
-    print("[Debrief Agent] Running...")
-
     if not transcript:
         return {
             "session_summary": "No conversation took place.",
@@ -76,6 +77,8 @@ def run_debrief_agent(transcript: list, llm_client) -> dict:
         for turn in transcript
     )
 
-    result = llm_client.call_json(SYSTEM_PROMPT, f"TRANSCRIPT:\n{formatted}")
-    print("[Debrief Agent] Done.")
-    return result
+    harness = AgentHarness(
+        llm_client, name="debrief", system_prompt=SYSTEM_PROMPT,
+        output_schema=DebriefOutput,
+    )
+    return harness.run(f"TRANSCRIPT:\n{formatted}")

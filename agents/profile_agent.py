@@ -6,7 +6,8 @@ Output: structured JSON {skills, experience, projects, tone_markers}
 Runs in parallel with Client Research Agent.
 """
 
-import json
+from agents.harness import AgentHarness
+from agents.schemas import ProfileOutput
 
 SYSTEM_PROMPT = """You are a professional profiler for technology consultants.
 
@@ -65,7 +66,8 @@ def run_profile_agent(raw_profile: str, llm_client) -> dict:
     Returns:
         Structured profile dict
     """
-    print("[Profile Agent] Running...")
-    result = llm_client.call_json(SYSTEM_PROMPT, raw_profile)
-    print("[Profile Agent] Done.")
-    return result
+    harness = AgentHarness(
+        llm_client, name="profile", system_prompt=SYSTEM_PROMPT,
+        output_schema=ProfileOutput,
+    )
+    return harness.run(raw_profile)

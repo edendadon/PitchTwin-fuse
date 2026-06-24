@@ -59,11 +59,14 @@ def _as_infra(exc: Exception) -> InfraError:
 # --- per-agent invokers (lazy imports) -------------------------------------
 
 def _invoke_matching(case: GoldenCase) -> dict[str, Any]:
+    # The Issue #1 harness migration changed the signature back to taking an
+    # llm_client (run_matching_agent now wraps AgentHarness over LLMClient).
     from agents.matching_agent import run_matching_agent
+    from llm_client import LLMClient
 
     inp = case.input
     try:
-        return run_matching_agent(inp["structured_profile"], inp["client_context"])
+        return run_matching_agent(inp["structured_profile"], inp["client_context"], LLMClient())
     except KeyError:
         raise
     except Exception as exc:  # provider/model failure
@@ -71,7 +74,8 @@ def _invoke_matching(case: GoldenCase) -> dict[str, Any]:
 
 
 def _matching_schema() -> type[BaseModel]:
-    from agents.matching_agent import MatchingOutput
+    # Schemas now live in agents/schemas.py (Issue #1 harness).
+    from agents.schemas import MatchingOutput
 
     return MatchingOutput
 

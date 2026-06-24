@@ -23,6 +23,15 @@ PitchTwin automates the entire pitch preparation and pre-meeting experience via 
 2. **Interactive Client Twin** — A text-based conversational agent representing the consultant, grounded strictly in real profile data
 3. **Consultant Debrief** — Auto-generated summary of what the client asked and cared about, delivered before the first real meeting
 
+### Key Architecture Decision — Agent Harness (Option A)
+All agents use a shared `AgentHarness` base class that wraps `llm_client.call_json()` with:
+- **Input validation** — Pydantic schema checked before LLM call
+- **Output validation** — Pydantic schema checked after LLM call, retry with error feedback on failure
+- **Tracing** — Logfire/OTel spans per agent call with latency, retry count, input summary
+- **OTel context propagation** — Thread-safe span nesting (eliminates boilerplate from orchestrator)
+
+Matching and Writer agents are ported from `pydantic_ai.Agent` to the harness, unifying all 7 agents under one calling convention. `pydantic_ai` dependency is removed.
+
 ---
 
 ## Core User Flows
@@ -50,18 +59,21 @@ PitchTwin automates the entire pitch preparation and pre-meeting experience via 
 
 | Agent | Role | Input | Output |
 |---|---|---|---|
+| Harness (cross-cutting) | Shared base: validation, tracing, retry | Schema + LLM client | Validated dict |
 | Profile Agent | Parse + structure consultant profile | Raw profile (text/JSON) | Structured skills, experience, projects |
 | Client Research Agent | Analyze client brief | Brief + company name | Industry context, challenges, tech stack |
 | Matching Agent | Rank relevance | Profile data + client context | Ranked relevance map |
 | Writer Agent | Generate proposal artifacts | Relevance map + client tone | Tailored CV, bio, talking points |
 | Gap Agent | Identify mismatches | Client requirements + profile | Gap list + framing suggestions |
+| Combined Agent | Match + Writer + Gap in one call | Profile + client context | All proposal artifacts |
 | Persona Agent | Build conversational twin | Full profile + matched experience | LLM-powered chat twin |
 | Debrief Agent | Summarize client conversation | Chat transcript | Structured debrief report |
 
 ### Orchestration Rules
-- **Parallel**: Profile Agent + Client Research Agent run concurrently (Python threading)
-- **Sequential**: Matching → Writer → Gap → (package delivered); Persona Agent initialized after matching
+- **Parallel**: Profile Agent + Client Research Agent run concurrently (Python threading, OTel context propagated by harness)
+- **Sequential**: Combined Agent (Match + Writer + Gap in one call) after parallel phase
 - **Trigger**: Debrief Agent fires on session end event
+- **All agents**: routed through `AgentHarness` for validation + tracing
 
 ---
 
@@ -126,6 +138,8 @@ PitchTwin automates the entire pitch preparation and pre-meeting experience via 
 | Storage | SQLite (prod) / JSON files (dev) | Zero-config, portable |
 | Frontend | Flask Jinja2 templates + plain CSS | Minimal, shippable fast |
 | Deployment | Docker + docker-compose | Reproducible, simple |
+| Tracing | Logfire + OpenTelemetry | Per-agent spans, latency, validation metrics |
+| Validation | Pydantic v2 | Input/output schema enforcement, retry on failure |
 
 ---
 

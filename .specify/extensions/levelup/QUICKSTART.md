@@ -23,8 +23,8 @@ The LevelUp extension helps brownfield projects analyze their codebase and contr
 # 2. Review and accept/reject CDRs
 /levelup.clarify
 
-# 3. (Optional) Build skill
-/levelup.skill python-error-handling
+# 3. (Optional) Build skills
+/levelup.skills python-error-handling
 
 # 4. Create PR to team-ai-directives
 /levelup.implement
@@ -42,7 +42,7 @@ For capturing patterns after implementing a feature:
 /levelup.clarify
 
 # 3. Build skill from accepted CDRs
-/levelup.skill {pattern-name}
+/levelup.skills {pattern-name}
 
 # 4. Create PR
 /levelup.implement
@@ -54,7 +54,7 @@ To document the AI session before extracting patterns:
 
 ```bash
 # 1. Generate trace from feature implementation
-/spec.trace
+/levelup.trace
 
 # 2. Extract CDRs enriched with trace context
 /levelup.specify
@@ -69,9 +69,9 @@ To document the AI session before extracting patterns:
 | `/levelup.init` | Initial codebase scan for CDRs | **One-time** brownfield setup |
 | `/levelup.specify` | Extract CDRs from feature context | **Ongoing** - after feature implementation |
 | `/levelup.clarify` | Resolve ambiguities in CDRs | After init/specify |
-| `/levelup.skill` | Build one skill from CDRs | Create reusable skills |
+| `/levelup.skills` | Build a single skill from CDRs | Create reusable skills |
 | `/levelup.implement` | Compile CDRs into PR | Ready to contribute |
-| `/spec.trace` | Generate session execution trace | Document AI session (optional) |
+| `/levelup.trace` | Generate session execution trace | Document AI session (optional) |
 | `/levelup.validate` | Scan for rule conflicts | Check for inconsistencies |
 
 ## Key Files
@@ -128,14 +128,14 @@ class ApplicationError(Exception):
 | **Accepted** | Approved for implementation |
 | **Rejected** | Not approved (reason documented in CDR) |
 
-## levelup.skill Command
+## levelup.skills Command
 
 Build a **single skill** from accepted CDRs for your team to use.
 
 ### Usage
 
 ```bash
-/levelup.skill <skill-identifier>
+/levelup.skills <skill-identifier>
 ```
 
 **Skill identifier can be:**
@@ -146,9 +146,9 @@ Build a **single skill** from accepted CDRs for your team to use.
 ### Examples
 
 ```bash
-/levelup.skill python-error-handling
-/levelup.skill CDR-005
-/levelup.skill "API authentication patterns"
+/levelup.skills python-error-handling
+/levelup.skills CDR-005
+/levelup.skills "API authentication patterns"
 ```
 
 ### Instruction Types
@@ -322,7 +322,7 @@ After product development, capture product patterns:
 ```bash
 /product.implement     # Generate PRD
 /levelup.specify      # Extract patterns from product work
-/levelup.skill prd-format
+/levelup.skills prd-format
 /levelup.implement
 ```
 
@@ -333,7 +333,7 @@ After architecture work, capture architectural patterns:
 ```bash
 /architect.implement   # Generate AD.md
 /levelup.specify      # Extract patterns from architecture work
-/levelup.skill adr-format
+/levelup.skills adr-format
 /levelup.implement
 ```
 
@@ -343,9 +343,9 @@ After feature implementation, generate trace and extract patterns:
 
 ```bash
 /spec.implement        # Implement feature
-/spec.trace            # Document session
+/levelup.trace         # Document session
 /levelup.specify       # Refine CDRs with feature context
-/levelup.skill {pattern}
+/levelup.skills {pattern}
 /levelup.implement
 ```
 
@@ -354,20 +354,20 @@ After feature implementation, generate trace and extract patterns:
 ### Initial Setup (Run Once)
 
 ```
-/levelup.init → /levelup.clarify → /levelup.skill (optional) → /levelup.implement
+/levelup.init → /levelup.clarify → /levelup.skills (optional) → /levelup.implement
 ```
 
 ### Ongoing Feature Work
 
 ```
-/spec.trace (optional) → /levelup.specify → /levelup.clarify → /levelup.skill → /levelup.implement
+/levelup.trace (optional) → /levelup.specify → /levelup.clarify → /levelup.skills → /levelup.implement
 ```
 
 **Next Steps:**
 1. **Initial setup**: Run `/levelup.init` once to scan existing codebase
 2. **After features**: Run `/levelup.specify` to extract patterns from feature context
 3. Run `/levelup.clarify` to accept CDRs
-4. Run `/levelup.skill <name>` to build a specific skill
+4. Run `/levelup.skills <name>` to build specific skills
 5. Run `/levelup.implement` to create PR
 
 For team-ai-directives format compatibility, ensure your contribution follows the established structure.

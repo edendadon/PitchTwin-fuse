@@ -1,0 +1,38 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "litellm": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "LiteLLM",
+      "options": {
+        "baseURL": "https://litellm.tikalk.dev/v1"
+      },
+      "models": {
+        "gpt-4o": { "name": "GPT-4o" },
+        "claude-sonnet-4-20250514": { "name": "Claude Sonnet 4" },
+        "gemini-3-flash-preview": {},
+        "gemini-2.5-pro": {},
+        "gemini-2.5-flash": {},
+        "gemini-3-pro-preview": {},
+        "gemini-3.1-pro-preview": {},
+        "gemini-3.1-flash-lite-preview": {},
+        "gemini-3.5-flash": {},
+        "qwen3-max": {},
+        "qwen35-122b": {},
+        "qwen-plus": {},
+        "gpt-4": {},
+        "gpt-4-turbo": {},
+        "gpt-4.1": {},
+        "gpt-5.2": {},
+        "gpt-5.4": {},
+        "gpt-5.5": {},
+        "minimax-m2-5-free": {},
+        "nemotron-3-super-free": {},
+        "kimi-k2.5": {},
+        "kimi-k2.6": {},
+        "claude-sonnet-4-6": {},
+        "claude-opus-4-6": {}
+      }
+    }
+  }
+}

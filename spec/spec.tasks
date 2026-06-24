@@ -1,5 +1,12 @@
 # spec.tasks — PitchTwin
 
+> Regenerated from `spec.plan` + `spec.arch` + `spec.harness-brainstorm.md`, then
+> re-grounded to the **`main`** branch (the base for this worktree). On `main` all
+> agents already call `llm_client.call_json()` uniformly — there is **no
+> `pydantic_ai` second path and no `logfire`** — so the harness is a clean unifying
+> layer and tracing is **console-based**. PHASE 2.5 is the Agent Harness (issue #1)
+> and is now implemented.
+
 ## Task Breakdown by Phase
 
 ---
@@ -9,81 +16,109 @@
 - [x] T-002: Write `spec.plan`
 - [x] T-003: Write `spec.tasks`
 - [x] T-004: Write `spec.arch`
-- [ ] T-005: Write `requirements.txt`
-- [ ] T-006: Write `Dockerfile` + `docker-compose.yml`
-- [ ] T-007: Write `.env.example`
+- [x] T-005: Write `requirements.txt`
+- [x] T-006: Write `Dockerfile` + `docker-compose.yml`
+- [x] T-007: Write `.env.example`
 
 ---
 
 ### PHASE 1 — Data Layer
-- [ ] T-101: Implement `db.py` — SQLite init, schema creation
-- [ ] T-102: Implement `models.py` — ConsultantProfile, Proposal, TwinSession dataclasses
-- [ ] T-103: Add JSON seed data for demo consultant profile (`data/sample_profile.json`)
-- [ ] T-104: Add JSON seed data for demo client brief (`data/sample_brief.json`)
+- [x] T-101: Implement `db.py` — SQLite init, schema creation (`consultant_profiles`, `proposals`, `twin_sessions`)
+- [x] T-102: Implement `models.py` — `ConsultantProfile`, `Proposal`, `TwinSession` dataclasses
+- [x] T-103: Add JSON seed data for demo consultant profile (`data/sample_profile.json`)
+- [x] T-104: Add JSON seed data for demo client brief (`data/sample_brief.json`)
 
 ---
 
 ### PHASE 2 — LLM Client
-- [ ] T-201: Implement `llm_client.py` — wrapper for Gemini API (primary) and Groq (fallback)
-- [ ] T-202: Add `call_llm(system_prompt, user_message)` function
-- [ ] T-203: Add retry logic (3 attempts, exponential backoff)
-- [ ] T-204: Add `.env` config loading (API keys)
+- [x] T-201: Implement `llm_client.py` — wrapper for Gemini / Groq / LiteLLM (default `litellm`, model `kimi-k2.5`)
+- [x] T-202: Add `call(system_prompt, user_message)` and `call_json(...)` methods
+- [x] T-203: Add retry logic (3 attempts, exponential backoff) in `call()`
+- [x] T-204: Add `.env` config loading (provider + API keys via `python-dotenv`)
 
 ---
 
-### PHASE 3 — Agents
-- [ ] T-301: Implement `agents/profile_agent.py` — parse raw profile → structured JSON
-- [ ] T-302: Implement `agents/client_research_agent.py` — brief + company → context JSON
-- [ ] T-303: Implement `agents/matching_agent.py` — profile + context → relevance map
-- [ ] T-304: Implement `agents/writer_agent.py` — relevance map → CV, bio, talking points
-- [ ] T-305: Implement `agents/gap_agent.py` — requirements + profile → gap analysis
-- [ ] T-306: Implement `agents/persona_agent.py` — profile + matches → chat response function
-- [ ] T-307: Implement `agents/debrief_agent.py` — transcript → debrief report
+### PHASE 2.5 — Agent Harness (Option A) — **issue #1, DONE**
+> Thin `AgentHarness` over `llm_client.call_json()` / `call()` adding output
+> validation + retry, console tracing, and a no-hallucination guardrail. One
+> calling convention for every agent. The harness returns the original parsed dict
+> (not `model_dump()`), so wrapping an agent is behaviour-preserving.
+
+**Harness core**
+- [x] T-251: Implement `agents/harness.py` — `AgentHarness(llm_client, name, system_prompt, output_schema=None, mode="json", max_retries=2)` with `run(user_message, *, ground_against=None)`
+- [x] T-253: Output validation against `output_schema`; on `ValidationError`/parse error, retry the LLM with the error appended (default 2 retries); on final failure, warn and return best-effort (pipeline stays robust)
+- [x] T-254: Console tracing per call — `[harness] agent=… status=… latency_ms=… retries=… output_valid=…`
+- [x] T-256: Dual mode — `mode="json"` (parse + validate) and `mode="text"` (raw string, used by persona)
+- [x] T-257: `NoHallucinationGuardrail` — flags skills/technologies in output absent from the profile (skills, certifications, experience/project technologies); wired into `run()` via `ground_against`
+- [ ] T-252: (deferred) Optional input-schema validation before the LLM call — not required by the acceptance criteria; agents build heterogeneous messages, so left for a follow-up
+- [n/a] T-255: Move OTel context propagation into the harness — **N/A on `main`** (no logfire/OTel here; revisit if/when the logfire branch merges)
+
+**Schemas**
+- [x] T-258: `agents/schemas.py` — Pydantic output schemas: `ProfileOutput`, `ClientContextOutput`, `MatchingOutput`/`MatchItem`, `WriterOutput`, `GapAnalysisOutput`/`GapItem`, `DebriefOutput`, `CombinedOutput` (lenient: one required identifying field, extras ignored)
+
+**Agent migration — ALL agents**
+- [x] T-259: `profile_agent` + `client_research_agent` via harness (validated output, console trace) — primary acceptance target
+- [x] T-260: `matching_agent` + `writer_agent` via harness — ported off `pydantic_ai` (introduced by #13, now merged into `main`)
+- [x] T-262: `gap_agent`, `combined_agent`, `debrief_agent` via harness; `persona_agent` via harness in text mode
+- [x] T-261: Remove `pydantic_ai` dependency from `pyproject.toml` + delete `agents/pydantic_ai_setup.py` (both arrived via the #13 merge)
+- [x] T-263: Orchestrator interface unchanged — verified `run_proposal_pipeline()` / `handle_twin_message()` signatures intact, all modules import without cycles
+
+**Harness tests** (`tests/test_harness.py`)
+- [x] T-271: Output-validation retry — invalid JSON then valid → returns validated dict, exactly one retry
+- [x] T-272: No-hallucination guardrail flags a fabricated skill absent from the profile (issue acceptance test)
+- [x] T-274: Profile + Client Research run via the harness and produce schema-valid output
+- [x] T-275: Text-mode harness returns the (stripped) string response
+- [x] T-273: Restore matching/writer tests to `MockLLMClient` (the #13 merge reintroduced the `patch.object(_agent)` pydantic mocks; reverted to harness style)
+
+---
+
+### PHASE 3 — Agents (all now routed through the harness)
+- [x] T-301: `profile_agent.py` — raw profile → structured JSON *(harness, `ProfileOutput`)*
+- [x] T-302: `client_research_agent.py` — brief + company → context JSON *(harness, `ClientContextOutput`)*
+- [x] T-303: `matching_agent.py` — profile + context → relevance map *(harness, `MatchingOutput`)*
+- [x] T-304: `writer_agent.py` — relevance map → CV, bio, talking points *(harness, `WriterOutput`)*
+- [x] T-305: `gap_agent.py` — requirements + profile → gap analysis *(harness, `GapAnalysisOutput`)*
+- [x] T-306: `persona_agent.py` — profile + matches → chat response *(harness, text mode)*
+- [x] T-307: `debrief_agent.py` — transcript → debrief report *(harness, `DebriefOutput`; empty-transcript short-circuit preserved)*
+- [x] T-308: `combined_agent.py` — match + write + gap in one call *(harness, `CombinedOutput`; the path the orchestrator uses)*
 
 ---
 
 ### PHASE 4 — Orchestrator
-- [ ] T-401: Implement `orchestrator.py` — `run_proposal_pipeline(consultant_id, brief, company)`
-- [ ] T-402: Run Profile Agent + Client Research Agent in parallel (threading)
-- [ ] T-403: Chain Matching → Writer → Gap sequentially after parallel phase
-- [ ] T-404: Store all outputs to SQLite
-- [ ] T-405: Return proposal object with all artifacts
+- [x] T-401: `orchestrator.py` — `run_proposal_pipeline(consultant_id, brief, company)`
+- [x] T-402: Run Profile Agent + Client Research Agent in parallel (threading)
+- [x] T-403: Run Combined Agent (Match + Writer + Gap in one call) after the parallel phase
+- [x] T-404: Store all outputs to SQLite
+- [x] T-405: Return proposal object with all artifacts
+- [x] T-406: Twin session lifecycle — `create_twin_session`, `handle_twin_message`, `end_twin_session` (Persona + Debrief)
 
 ---
 
 ### PHASE 5 — Flask App
-- [ ] T-501: Implement `app.py` — Flask app factory, route registration
-- [ ] T-502: Route `GET /` — consultant dashboard (list proposals)
-- [ ] T-503: Route `POST /proposal/new` — trigger pipeline, return proposal ID
-- [ ] T-504: Route `GET /proposal/<id>` — view proposal package
-- [ ] T-505: Route `GET /twin/<session_id>` — client twin chat interface
-- [ ] T-506: Route `POST /twin/<session_id>/message` — send message, get twin response
-- [ ] T-507: Route `POST /twin/<session_id>/end` — end session, trigger debrief
-- [ ] T-508: Route `GET /debrief/<proposal_id>` — view debrief report
+- [x] T-501: `app.py` — app setup, route registration
+- [x] T-502: `GET /` dashboard · T-503: `POST /proposal/new` · T-504: `GET /proposal/<id>`
+- [x] T-505: `GET /twin/<session_id>` · T-506: `POST /twin/<session_id>/message` · T-507: `POST /twin/<session_id>/end`
+- [x] T-508: `GET /debrief/<proposal_id>` · plus `POST /profile/new`, `POST /demo/seed`, `GET /api/health`
 
 ---
 
 ### PHASE 6 — Frontend Templates
-- [ ] T-601: `templates/base.html` — shared layout, minimal CSS
-- [ ] T-602: `templates/dashboard.html` — list proposals, trigger new proposal form
-- [ ] T-603: `templates/proposal.html` — display CV, bio, talking points, gap analysis
-- [ ] T-604: `templates/twin_chat.html` — client-facing chat UI (polling-based)
-- [ ] T-605: `templates/debrief.html` — consultant debrief view
-- [ ] T-606: `static/css/style.css` — clean minimal styling
+- [x] T-601–T-606: `base`, `dashboard`, `proposal`, `twin_chat`, `debrief` templates + `static/css/style.css`
 
 ---
 
 ### PHASE 7 — Integration & Demo
-- [ ] T-701: Wire seed data to demo flow (one-click demo trigger)
+- [x] T-701: Wire seed data to demo flow (`POST /demo/seed`)
 - [ ] T-702: Manual end-to-end test: profile → proposal → twin → debrief
-- [ ] T-703: Verify Persona Agent refuses invented facts
+- [ ] T-703: Verify Persona Agent refuses invented facts (manual; guardrail unit-tested in T-272)
 - [ ] T-704: Verify Debrief Agent fires on session end
 - [ ] T-705: Verify full pipeline runs under 5 minutes
+- [x] T-706: Verify harness traces appear on the console (per-agent line with latency / retries / validity)
 
 ---
 
 ### PHASE 8 — Docker & Deployment
-- [ ] T-801: Confirm `docker-compose up` starts all services
+- [ ] T-801: Confirm `docker-compose up` starts the app
 - [ ] T-802: Confirm SQLite persists across container restart (volume mount)
 - [ ] T-803: Test demo flow inside Docker
 
@@ -91,23 +126,33 @@
 
 ## Agent Ownership Map
 
-| Agent | File | Owner |
-|---|---|---|
-| Profile Agent | `agents/profile_agent.py` | — |
-| Client Research Agent | `agents/client_research_agent.py` | — |
-| Matching Agent | `agents/matching_agent.py` | — |
-| Writer Agent | `agents/writer_agent.py` | — |
-| Gap Agent | `agents/gap_agent.py` | — |
-| Persona Agent | `agents/persona_agent.py` | — |
-| Debrief Agent | `agents/debrief_agent.py` | — |
+| Agent | File | LLM path | Output schema |
+|---|---|---|---|
+| Harness | `agents/harness.py` | — | — |
+| Schemas | `agents/schemas.py` | — | — |
+| Profile | `agents/profile_agent.py` | harness · json | `ProfileOutput` |
+| Client Research | `agents/client_research_agent.py` | harness · json | `ClientContextOutput` |
+| Matching | `agents/matching_agent.py` | harness · json | `MatchingOutput` |
+| Writer | `agents/writer_agent.py` | harness · json | `WriterOutput` |
+| Gap | `agents/gap_agent.py` | harness · json | `GapAnalysisOutput` |
+| Combined | `agents/combined_agent.py` | harness · json | `CombinedOutput` |
+| Debrief | `agents/debrief_agent.py` | harness · json | `DebriefOutput` |
+| Persona | `agents/persona_agent.py` | harness · text | — |
 
 ---
 
-## Priority Order for Demo Day
-1. T-201 (LLM client) — everything depends on it
-2. T-301, T-302 (parallel agents) — first handoff
-3. T-303, T-304, T-305 (sequential agents) — proposal package
-4. T-401 (orchestrator) — wires it all
-5. T-501–T-507 (Flask routes) — makes it demoable
-6. T-306, T-307 (twin + debrief) — step 2 and 3
-7. T-601–T-606 (templates) — presentation layer
+## Acceptance Criteria (issue #1) — MET
+- [x] Profile + Client Research run via the harness, produce validated output, trace logged to console (T-259, T-254, T-274)
+- [x] Unit test: no-hallucination guardrail catches a fabricated skill in output (T-272)
+- [x] No breaking changes to the orchestrator interface (T-263)
+- [x] Bonus: ALL agents (not just the two) migrated to the harness
+
+---
+
+## Test Status
+`tests/`: **13 passed** — 8 existing agent tests (regression, behaviour preserved) + 5 harness tests.
+
+## Remaining / follow-ups
+- T-252 optional input-schema validation
+- T-255 OTel/logfire span nesting — only if the logfire branch lands on `main`
+- T-702–T-705, T-801–T-803 manual/integration verification
