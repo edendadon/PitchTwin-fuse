@@ -7,24 +7,26 @@
     <h1>Proposal: {{ proposal.company_name }}</h1>
     {% if profile %}<p class="page-subtitle">Consultant: <strong>{{ profile.name }}</strong></p>{% endif %}
   </div>
-  {% if twin_session %}
   <div class="header-actions">
+    {% if twin_session %}
     <a href="/twin/{{ twin_session.id }}" class="btn-twin" target="_blank">
       Open Client Twin Link
     </a>
     <a href="/debrief/{{ proposal.id }}" class="btn-secondary">View Debrief</a>
+    {% endif %}
+    <a href="/proposal/{{ proposal.id }}/trace" class="btn-secondary">Debug Trace</a>
   </div>
-  {% endif %}
 </div>
 
-{% if proposal.usage and proposal.usage.get('total_tokens') %}
 <p class="generation-meta">
+  {% if proposal.usage and proposal.usage.get('total_tokens') %}
   Generated in {{ proposal.usage.get('duration_seconds', 0)|round(0)|int }}s
   &bull; {{ "{:,}".format(proposal.usage.get('total_tokens', 0)) }} tokens
   &bull; ${{ "%.3f"|format(proposal.usage.get('cost_usd', 0)) }}
-  &bull; <a href="/proposal/{{ proposal.id }}/trace">View debug trace &rarr;</a>
+  &bull;
+  {% endif %}
+  <a href="/proposal/{{ proposal.id }}/trace">View debug trace &rarr;</a>
 </p>
-{% endif %}
 
 <!-- Twin link for sharing -->
 {% if twin_session %}
