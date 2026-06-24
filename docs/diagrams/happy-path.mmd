@@ -1,0 +1,30 @@
+%%{init: {'theme':'dark', 'themeVariables': {'fontSize':'16px'}}}%%
+flowchart TD
+    U([Consultant submits<br/>brief + company + profile]):::terminal --> P1
+    subgraph P1["PHASE 1 — PARALLEL threads"]
+        direction LR
+        PA["Profile Agent<br/>structures raw CV / profile"]:::agent
+        CRA["Client Research Agent<br/>extracts client context"]:::agent
+    end
+    PA -- structured_profile --> H{{"HANDOFF<br/>profile + client context"}}:::handoff
+    CRA -- client_context --> H
+    H --> P2
+    subgraph P2["PHASE 2 — SINGLE LLM CALL"]
+        CA["Combined Agent<br/>Matching + Writer + Gap"]:::agent
+    end
+    P2 --> PROP[("Proposal stored<br/>CV · bio · talking points · gaps")]:::store
+    PROP --> READY([Proposal page · status = ready]):::terminal
+    READY --> P3
+    subgraph P3["PHASE 3 — ON DEMAND per client message"]
+        PERSONA["Persona Agent<br/>grounded twin chat"]:::agent
+    end
+    P3 -.->|client ends session| P4
+    subgraph P4["PHASE 4 — TRIGGERED on session end"]
+        DEBRIEF["Debrief Agent<br/>summarizes transcript"]:::agent
+    end
+    P4 --> END([Debrief report]):::terminal
+
+    classDef agent fill:#1f6feb,stroke:#58a6ff,color:#fff,stroke-width:2px;
+    classDef store fill:#8957e5,stroke:#bc8cff,color:#fff,stroke-width:2px;
+    classDef terminal fill:#238636,stroke:#3fb950,color:#fff,stroke-width:2px;
+    classDef handoff fill:#9e6a03,stroke:#e3b341,color:#fff,stroke-width:2px;
