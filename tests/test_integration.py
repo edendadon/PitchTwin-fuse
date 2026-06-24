@@ -103,3 +103,97 @@ def test_full_demo_flow(client):
     assert isinstance(body["response"], str)
     assert body["response"].strip()
     assert "AWS" in body["response"]
+
+
+def _run_pipeline_via_ui(client):
+    """Seed + run the proposal pipeline through the UI; return the proposal id."""
+    seed = client.post("/demo/seed").get_json()
+    r = client.post(
+        "/proposal/new",
+        data={
+            "consultant_id": seed["profile_id"],
+            "company_name": seed["company_name"],
+            "client_brief": seed["client_brief"],
+        },
+        follow_redirects=False,
+    )
+    assert r.status_code == 302, "pipeline did not complete (no redirect)"
+    return re.search(r"/proposal/([^/?#]+)$", r.headers["Location"]).group(1)
+
+
+def test_pipeline_records_token_usage_per_node(client):
+    """The pipeline attributes tokens/cost to each DAG node and persists them."""
+    import db
+
+    proposal_id = _run_pipeline_via_ui(client)
+    proposal = db.get_proposal(proposal_id)
+
+    assert proposal.trace_id, "trace_id should be persisted on the proposal"
+
+    usage = proposal.usage
+    assert usage["trace_id"] == proposal.trace_id
+    assert usage["total_tokens"] > 0
+    assert usage["cost_usd"] >= 0
+    assert usage["duration_seconds"] >= 0
+
+    # Thread-local attribution: each of the three DAG nodes recorded its own usage.
+    nodes = usage["nodes"]
+    assert {"profile_agent", "client_research", "combined_agent"} <= set(nodes.keys())
+    for node_id in ("profile_agent", "client_research", "combined_agent"):
+        assert nodes[node_id]["total_tokens"] > 0, f"{node_id} captured no tokens"
+        assert nodes[node_id]["calls"] >= 1
+
+    # Totals equal the sum across node buckets (no double counting / leakage).
+    assert usage["total_tokens"] == sum(n["total_tokens"] for n in nodes.values())
+
+
+def test_proposal_page_shows_generation_meta(client):
+    """The proposal page renders the cost line + a debug-trace link."""
+    proposal_id = _run_pipeline_via_ui(client)
+    html = client.get(f"/proposal/{proposal_id}").get_data(as_text=True)
+
+    assert "tokens" in html
+    assert "View debug trace" in html
+    assert f"/proposal/{proposal_id}/trace" in html
+
+
+def test_debug_trace_ui_renders_nodes(client):
+    """The debug-trace UI joins traces (status/latency) with usage (tokens/cost)."""
+    proposal_id = _run_pipeline_via_ui(client)
+    r = client.get(f"/proposal/{proposal_id}/trace")
+    assert r.status_code == 200
+    html = r.get_data(as_text=True)
+
+    # All three nodes are shown, each marked success (clean offline run).
+    for node_id in ("profile_agent", "client_research", "combined_agent"):
+        assert node_id in html
+    assert "node-success" in html
+
+
+def test_debug_trace_ui_404_for_unknown_proposal(client):
+    assert client.get("/proposal/does-not-exist/trace").status_code == 404
+
+
+def test_dashboard_links_to_trace_for_traced_proposals(client):
+    """The dashboard proposals table exposes a Trace action for runs with a trace."""
+    proposal_id = _run_pipeline_via_ui(client)
+    html = client.get("/").get_data(as_text=True)
+
+    assert ">Trace<" in html
+    assert f"/proposal/{proposal_id}/trace" in html
+
+
+def test_proposal_page_links_to_trace_even_without_usage(client):
+    """The trace must be reachable for any proposal, including pre-#6 ones with
+    no usage data and no twin session (header button + inline link)."""
+    import db
+    from models import Proposal
+
+    # A proposal with no usage, no trace_id, no twin session (pre-#6 shape).
+    db.save_proposal(
+        Proposal(id="no-usage-1", consultant_id="c", client_brief="b", company_name="Acme")
+    )
+    html = client.get("/proposal/no-usage-1").get_data(as_text=True)
+
+    assert "/proposal/no-usage-1/trace" in html
+    assert "Debug Trace" in html  # prominent header button, always present

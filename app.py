@@ -203,6 +203,138 @@ def new_proposal():
     return redirect(url_for("view_proposal", proposal_id=proposal_id))
 
 
+# Phase + dependency metadata for the proposal DAG, mirroring
+# orchestrator._build_proposal_dag. Used to lay out the debug-trace UI.
+_TRACE_NODE_PHASE = {"profile_agent": 1, "client_research": 1, "combined_agent": 2}
+_TRACE_NODE_DEPENDS = {
+    "profile_agent": [],
+    "client_research": [],
+    "combined_agent": ["profile_agent", "client_research"],
+}
+
+
+def _aggregate_trace_nodes(events):
+    """Collapse raw execution_traces events into one status row per node.
+
+    Each node emits multiple events (a 'started' per attempt, then a terminal
+    'completed' / 'failed' / 'timed_out'). We fold them into a single status:
+
+      success    completed, no prior failed attempt
+      retry      completed, but only after >=1 failed attempt
+      failure    failed, never completed
+      timeout    timed_out, never completed
+
+    'human_gate' is a reserved status for gate nodes; the proposal DAG has no
+    gate node today (see debug_trace.html), so it is never produced here.
+    Returns rows in first-seen order; the caller re-orders by phase.
+    """
+    nodes = {}
+    order = []
+    for ev in events:
+        node_id = ev["node_id"]
+        node = nodes.get(node_id)
+        if node is None:
+            node = {
+                "node_id": node_id,
+                "failed_count": 0,
+                "completed": False,
+                "timed_out": False,
+                "duration_ms": None,
+                "error": None,
+            }
+            nodes[node_id] = node
+            order.append(node_id)
+
+        event = ev["event"]
+        if event == "completed":
+            node["completed"] = True
+            if ev.get("duration_ms") is not None:
+                node["duration_ms"] = ev["duration_ms"]
+        elif event == "failed":
+            node["failed_count"] += 1
+            if ev.get("error"):
+                node["error"] = ev["error"]
+        elif event == "timed_out":
+            node["timed_out"] = True
+            if ev.get("error"):
+                node["error"] = ev["error"]
+            if ev.get("duration_ms") is not None:
+                node["duration_ms"] = ev["duration_ms"]
+        elif event == "circuit_breaker" and ev.get("error"):
+            node["error"] = ev["error"]
+
+    rows = []
+    for node_id in order:
+        node = nodes[node_id]
+        if node["completed"]:
+            status = "retry" if node["failed_count"] > 0 else "success"
+        elif node["timed_out"]:
+            status = "timeout"
+        else:
+            status = "failure"
+        rows.append({
+            "node_id": node_id,
+            "status": status,
+            "duration_ms": node["duration_ms"],
+            "error": node["error"],
+        })
+    return rows
+
+
+@app.route("/proposal/<proposal_id>/trace")
+def view_trace(proposal_id):
+    """
+    HTML debug-trace UI for a proposal's DAG run.
+
+    Joins #2's execution_traces (per-node status + latency + errors) with #6's
+    proposal.usage (per-node tokens + cost + guardrails) by node_id, laid out
+    by phase.
+    """
+    proposal = db.get_proposal(proposal_id)
+    if not proposal:
+        return "Proposal not found", 404
+
+    events = MemoryStore().get_trace(proposal.trace_id) if proposal.trace_id else []
+    status_by_node = {row["node_id"]: row for row in _aggregate_trace_nodes(events)}
+    usage_nodes = (proposal.usage or {}).get("nodes", {})
+
+    # Union of node ids seen in the trace and in the usage blob, so neither a
+    # node that never recorded usage nor one with no trace events is dropped.
+    node_ids = list(status_by_node.keys())
+    for node_id in usage_nodes:
+        if node_id not in status_by_node:
+            node_ids.append(node_id)
+
+    nodes = []
+    for node_id in node_ids:
+        status_row = status_by_node.get(node_id, {
+            "status": "success", "duration_ms": None, "error": None,
+        })
+        usage = usage_nodes.get(node_id, {})
+        nodes.append({
+            "node_id": node_id,
+            "status": status_row["status"],
+            "duration_ms": status_row["duration_ms"],
+            "error": status_row["error"],
+            "prompt_tokens": usage.get("prompt_tokens", 0),
+            "completion_tokens": usage.get("completion_tokens", 0),
+            "total_tokens": usage.get("total_tokens", 0),
+            "cost_usd": usage.get("cost_usd", 0.0),
+            "calls": usage.get("calls", 0),
+            "guardrail_triggers": usage.get("guardrail_triggers", []),
+            "depends_on": _TRACE_NODE_DEPENDS.get(node_id, []),
+            "phase": _TRACE_NODE_PHASE.get(node_id, 99),
+        })
+    nodes.sort(key=lambda n: (n["phase"], n["node_id"]))
+
+    return render_template(
+        "debug_trace.html",
+        proposal=proposal,
+        nodes=nodes,
+        totals=proposal.usage or {},
+    )
+
+
 @app.route("/proposal/<proposal_id>")
 def view_proposal(proposal_id):
     proposal = db.get_proposal(proposal_id)

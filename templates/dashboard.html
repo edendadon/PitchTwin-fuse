@@ -66,6 +66,10 @@
           <a href="/proposal/{{ prop.id }}" class="link-action">View Proposal</a>
           &middot;
           <a href="/debrief/{{ prop.id }}" class="link-action">Debrief</a>
+          {% if prop.trace_id %}
+          &middot;
+          <a href="/proposal/{{ prop.id }}/trace" class="link-action">Trace</a>
+          {% endif %}
         </td>
       </tr>
       {% endfor %}

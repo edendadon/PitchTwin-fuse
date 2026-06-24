@@ -203,5 +203,58 @@ body {
 /* --- RAW OUTPUT --- */
 .raw-output { background: var(--gray-50); padding: 16px; border-radius: 8px; font-size: 12px; font-family: monospace; white-space: pre-wrap; overflow-x: auto; }
 
+/* --- GENERATION META (proposal cost line) --- */
+.generation-meta { color: var(--gray-500); font-size: 13px; margin: -12px 0 24px; }
+.generation-meta a { color: var(--accent); text-decoration: none; font-weight: 600; }
+.generation-meta a:hover { text-decoration: underline; }
+
+/* --- DEBUG TRACE UI --- */
+.trace-id { font-size: 12px; color: var(--gray-500); font-family: monospace; }
+
+.dag-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 16px; margin-bottom: 20px; font-size: 13px; color: var(--gray-700); }
+.dag-legend .legend-item { display: inline-flex; align-items: center; gap: 6px; }
+.dag-legend .swatch { width: 14px; height: 14px; border-radius: 4px; display: inline-block; border: 1px solid rgba(0,0,0,0.08); }
+.dag-legend .legend-note { color: var(--gray-500); font-size: 12px; font-style: italic; }
+
+.trace-totals { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 28px; }
+.trace-totals .totals-item { background: white; border: 1px solid var(--gray-200); border-radius: var(--radius); padding: 12px 18px; min-width: 120px; }
+.trace-totals .totals-label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--gray-500); font-weight: 600; }
+.trace-totals .totals-value { display: block; font-size: 18px; font-weight: 700; color: var(--dark); margin-top: 4px; }
+
+.dag { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
+.dag-phase { display: flex; flex-direction: column; gap: 14px; flex: 1; min-width: 240px; }
+.dag-phase-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--gray-500); font-weight: 700; }
+
+.dag-node { background: white; border: 1px solid var(--gray-200); border-left-width: 4px; border-radius: var(--radius); padding: 14px 16px; }
+.dag-node-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px; }
+.dag-node-name { font-weight: 700; font-size: 14px; color: var(--dark); }
+.dag-node-status { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; padding: 2px 8px; border-radius: 99px; }
+.dag-node-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; font-size: 13px; }
+.dag-node-stats div { display: flex; flex-direction: column; }
+.dag-node-stats dt { font-size: 10px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--gray-500); font-weight: 600; }
+.dag-node-stats dd { color: var(--gray-900); font-weight: 600; }
+.dag-node-guardrails { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px; }
+.guardrail-chip { font-size: 11px; font-weight: 600; background: var(--accent-light); color: var(--accent); padding: 2px 8px; border-radius: 99px; }
+.dag-node-error { margin-top: 10px; font-size: 12px; color: var(--danger); font-family: monospace; white-space: pre-wrap; }
+.dag-node-depends { margin-top: 10px; font-size: 11px; color: var(--gray-500); }
+
+/* Status colors reuse the shared vars. */
+.node-success { border-left-color: var(--success); }
+.node-success .dag-node-status { background: #d1fae5; color: #065f46; }
+.node-retry { border-left-color: var(--warning); }
+.node-retry .dag-node-status { background: #fef3c7; color: #92400e; }
+.node-failure, .node-timeout { border-left-color: var(--danger); }
+.node-failure .dag-node-status, .node-timeout .dag-node-status { background: #fee2e2; color: #991b1b; }
+.node-gate { border-left-color: var(--accent); }
+.node-gate .dag-node-status { background: var(--accent-light); color: var(--accent); }
+/* Legend swatch fills (no border-left context there). */
+.dag-legend .node-success { background: var(--success); }
+.dag-legend .node-retry { background: var(--warning); }
+.dag-legend .node-failure { background: var(--danger); }
+.dag-legend .node-gate { background: var(--accent); }
+
+.trace-json-hint { margin-top: 28px; font-size: 12px; color: var(--gray-500); }
+.trace-json-hint a { color: var(--accent); text-decoration: none; }
+
 /* --- FOOTER --- */
 footer { text-align: center; padding: 24px; color: var(--gray-500); font-size: 12px; border-top: 1px solid var(--gray-200); margin-top: 40px; }

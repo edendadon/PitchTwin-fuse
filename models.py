@@ -30,6 +30,10 @@ class Proposal:
     client_context: Dict[str, Any] = field(default_factory=dict)
     status: str = "generating"  # generating | awaiting_approval | ready
     created_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
+    # Token/cost tracking (issue #6). Additive + defaulted, so existing
+    # constructors and pre-migration DB rows stay valid.
+    trace_id: str = ""  # WorkflowEngine trace id; joins to execution_traces
+    usage: Dict[str, Any] = field(default_factory=dict)  # see token_tracking.to_usage_dict
 
 
 @dataclass

@@ -47,13 +47,38 @@ class FakeLLMClient:
     def __init__(self, *args, **kwargs):
         # The real __init__ builds a provider client + instruments logfire;
         # the fake must be inert.
-        pass
+        self._tracker = None
+
+    def set_tracker(self, tracker):
+        # Mirror the real LLMClient contract so the orchestrator can wire usage
+        # capture in tests exactly as it does in production.
+        self._tracker = tracker
+
+    def _emit_fake_usage(self):
+        # Record deterministic, non-zero usage attributed to whatever DAG node
+        # is current on this thread, so the offline pipeline produces a real
+        # proposal.usage blob (per-node tokens/cost) without any network call.
+        if self._tracker is None:
+            return
+        from token_tracking import CallUsage, estimate_cost
+
+        prompt, completion = 1000, 500
+        self._tracker.record_usage(
+            CallUsage(
+                "fake-model",
+                prompt,
+                completion,
+                prompt + completion,
+                estimate_cost("fake-model", prompt, completion),
+            )
+        )
 
     def call_stream(self, system_prompt, user_message):
         """Yield the full fake response as a single chunk."""
         yield self.call(system_prompt, user_message)
 
     def call(self, system_prompt, user_message, retries=3):
+        self._emit_fake_usage()
         sp = system_prompt.lower()
         # persona_agent.build_system_prompt embeds "CRITICAL RULES" + name.
         # orchestrator calls .call() then .strip(), so return a real str.
@@ -67,6 +92,7 @@ class FakeLLMClient:
         return "I can speak to the experience listed in my profile."
 
     def call_json(self, system_prompt, user_message):
+        self._emit_fake_usage()
         sp = system_prompt.lower()
 
         # Profile Agent

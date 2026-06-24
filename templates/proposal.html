@@ -16,14 +16,15 @@
     <h1>Proposal: {{ proposal.company_name }}</h1>
     {% if profile %}<p class="page-subtitle">Consultant: <strong>{{ profile.name }}</strong></p>{% endif %}
   </div>
-  {% if twin_session %}
   <div class="header-actions">
+    {% if twin_session %}
     <a href="/twin/{{ twin_session.id }}" class="btn-twin" target="_blank">
       Open Client Twin Link
     </a>
     <a href="/debrief/{{ proposal.id }}" class="btn-secondary">View Debrief</a>
+    {% endif %}
+    <a href="/proposal/{{ proposal.id }}/trace" class="btn-secondary">Debug Trace</a>
   </div>
-  {% endif %}
 </div>
 
 <!-- Generating: show spinner and poll for status -->
