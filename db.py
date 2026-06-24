@@ -55,6 +55,8 @@ def init_db():
                 client_context TEXT DEFAULT '{}',
                 status TEXT DEFAULT 'pending',
                 created_at TEXT NOT NULL,
+                trace_id TEXT DEFAULT '',
+                usage_json TEXT DEFAULT '{}',
                 FOREIGN KEY (consultant_id) REFERENCES consultant_profiles(id)
             );
 
@@ -93,7 +95,22 @@ def init_db():
             CREATE INDEX IF NOT EXISTS idx_checkpoint_proposal_status ON workflow_checkpoints (proposal_id, status);
             CREATE INDEX IF NOT EXISTS idx_trace_trace_id ON execution_traces (trace_id);
         """)
+        # Bring pre-#6 databases up to date: CREATE TABLE IF NOT EXISTS won't
+        # touch an existing proposals table, so add any missing columns here.
+        _migrate_proposals(conn)
     print(f"[DB] Initialized at {DB_PATH}")
+
+
+def _migrate_proposals(conn):
+    """Add token/cost columns to a proposals table that predates issue #6."""
+    existing = {row["name"] for row in conn.execute("PRAGMA table_info(proposals)").fetchall()}
+    additions = {
+        "trace_id": "ALTER TABLE proposals ADD COLUMN trace_id TEXT DEFAULT ''",
+        "usage_json": "ALTER TABLE proposals ADD COLUMN usage_json TEXT DEFAULT '{}'",
+    }
+    for column, ddl in additions.items():
+        if column not in existing:
+            conn.execute(ddl)
 
 
 # --- ConsultantProfile CRUD ---
@@ -133,13 +150,15 @@ def save_proposal(proposal: Proposal):
         conn.execute("""
             INSERT OR REPLACE INTO proposals
             (id, consultant_id, client_brief, company_name, tailored_cv, bio,
-             talking_points, gap_analysis, relevance_map, client_context, status, created_at)
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+             talking_points, gap_analysis, relevance_map, client_context, status, created_at,
+             trace_id, usage_json)
+            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         """, (
             proposal.id, proposal.consultant_id, proposal.client_brief, proposal.company_name,
             proposal.tailored_cv, proposal.bio, json.dumps(proposal.talking_points),
             proposal.gap_analysis, json.dumps(proposal.relevance_map),
-            json.dumps(proposal.client_context), proposal.status, proposal.created_at
+            json.dumps(proposal.client_context), proposal.status, proposal.created_at,
+            proposal.trace_id, json.dumps(proposal.usage)
         ))
 
 
@@ -164,6 +183,11 @@ def list_proposals(consultant_id: str = None) -> list[Proposal]:
 
 
 def _row_to_proposal(row) -> Proposal:
+    # row.keys()-guarded so a row read before the migration ran (or via a SELECT
+    # that predates these columns) falls back to safe defaults.
+    keys = row.keys()
+    trace_id = row["trace_id"] if "trace_id" in keys and row["trace_id"] is not None else ""
+    usage_json = row["usage_json"] if "usage_json" in keys else None
     return Proposal(
         id=row["id"], consultant_id=row["consultant_id"],
         client_brief=row["client_brief"], company_name=row["company_name"],
@@ -172,7 +196,9 @@ def _row_to_proposal(row) -> Proposal:
         gap_analysis=row["gap_analysis"],
         relevance_map=json.loads(row["relevance_map"]),
         client_context=json.loads(row["client_context"]),
-        status=row["status"], created_at=row["created_at"]
+        status=row["status"], created_at=row["created_at"],
+        trace_id=trace_id,
+        usage=json.loads(usage_json) if usage_json else {},
     )
 
 

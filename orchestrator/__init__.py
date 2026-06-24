@@ -7,6 +7,7 @@ Phase 3 (ON DEMAND):  Persona Agent (per message, called from Flask route)
 Phase 4 (TRIGGERED):  Debrief Agent (fires on session end)
 """
 
+import time
 import uuid
 import json
 from datetime import datetime
@@ -16,6 +17,7 @@ import logfire
 import db
 from models import Proposal, TwinSession
 from llm_client import LLMClient
+from token_tracking import UsageTracker
 from agents.profile_agent import run_profile_agent
 from agents.client_research_agent import run_client_research_agent
 from agents.combined_agent import run_combined_agent
@@ -25,29 +27,39 @@ from orchestrator.workflow import WorkflowEngine, NodeConfig, CircuitBreakerOpen
 from orchestrator.memory import MemoryStore
 
 
-def _build_proposal_dag(profile_id: str, client_brief: str, company_name: str, llm: LLMClient):
-    """Build the DAG for the proposal pipeline."""
+def _build_proposal_dag(profile_id: str, client_brief: str, company_name: str,
+                        llm: LLMClient, tracker: UsageTracker):
+    """Build the DAG for the proposal pipeline.
+
+    Each wrapper sets the tracker's current node (node ids match the DAG ids
+    AND the execution_traces.node_id values, so the debug-trace UI joins
+    cleanly). The engine runs every wrapper in its own thread, so the
+    thread-local node context cleanly attributes the LLM calls made inside.
+    """
 
     def profile_agent_wrapper(input_data: dict) -> dict:
-        profile = db.get_profile(input_data["consultant_id"])
-        if not profile:
-            raise ValueError(f"Consultant profile {input_data['consultant_id']} not found")
-        result = run_profile_agent(profile.raw_profile, llm)
-        profile.structured = result
-        db.save_profile(profile)
-        return result
+        with tracker.node("profile_agent"):
+            profile = db.get_profile(input_data["consultant_id"])
+            if not profile:
+                raise ValueError(f"Consultant profile {input_data['consultant_id']} not found")
+            result = run_profile_agent(profile.raw_profile, llm)
+            profile.structured = result
+            db.save_profile(profile)
+            return result
 
     def research_agent_wrapper(input_data: dict) -> dict:
-        return run_client_research_agent(
-            input_data["client_brief"],
-            input_data["company_name"],
-            llm
-        )
+        with tracker.node("client_research"):
+            return run_client_research_agent(
+                input_data["client_brief"],
+                input_data["company_name"],
+                llm
+            )
 
     def combined_agent_wrapper(input_data: dict) -> dict:
-        structured_profile = input_data.get("profile_agent", {})
-        client_context = input_data.get("client_research", {})
-        return run_combined_agent(structured_profile, client_context, llm)
+        with tracker.node("combined_agent"):
+            structured_profile = input_data.get("profile_agent", {})
+            client_context = input_data.get("client_research", {})
+            return run_combined_agent(structured_profile, client_context, llm)
 
     dag = [
         {
@@ -88,6 +100,13 @@ def run_proposal_pipeline(consultant_id: str, client_brief: str, company_name: s
     """
     llm = LLMClient()
 
+    # Per-run token/cost aggregator. Wired into the LLM client so every agent
+    # call in the pipeline is captured, and into the DAG wrappers (below) so
+    # each call is attributed to the node that made it.
+    tracker = UsageTracker()
+    llm.set_tracker(tracker)
+    t0 = time.perf_counter()
+
     profile = db.get_profile(consultant_id)
     if not profile:
         raise ValueError(f"Consultant profile {consultant_id} not found")
@@ -109,7 +128,7 @@ def run_proposal_pipeline(consultant_id: str, client_brief: str, company_name: s
         checkpoint_store = MemoryStore()
         trace_store = MemoryStore()
 
-        dag = _build_proposal_dag(consultant_id, client_brief, company_name, llm)
+        dag = _build_proposal_dag(consultant_id, client_brief, company_name, llm, tracker)
 
         engine = WorkflowEngine(
             dag=dag,
@@ -153,6 +172,14 @@ def run_proposal_pipeline(consultant_id: str, client_brief: str, company_name: s
         status="ready",
         created_at=datetime.utcnow().isoformat()
     )
+
+    # Attach token/cost tracking (issue #6): status + latency live in
+    # execution_traces (keyed by trace_id), tokens + cost live here on the
+    # proposal's own usage blob, keyed per node_id so the UI can join them.
+    duration = time.perf_counter() - t0
+    proposal.trace_id = trace_id
+    proposal.usage = tracker.to_usage_dict(duration, trace_id)
+
     db.save_proposal(proposal)
 
     print(f"[Orchestrator] Pipeline complete. Proposal ID: {proposal.id}, Trace: {trace_id}")
