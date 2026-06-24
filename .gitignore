@@ -32,3 +32,9 @@ Thumbs.db
 
 # Uploads (if added later)
 uploads/
+
+# Test / tooling caches
+.pytest_cache/
+
+# Git worktrees (created by git-worktree tooling)
+.worktrees/
