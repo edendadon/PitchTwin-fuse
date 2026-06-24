@@ -1,0 +1,89 @@
+{
+  "id": "adversarial_no_kubernetes",
+  "agent": "matching",
+  "description": "Client wants Kubernetes but the profile has none \u2014 the match must not fabricate a Kubernetes skill.",
+  "tags": [
+    "adversarial"
+  ],
+  "source": {
+    "structured_profile": {
+      "name": "Sam Cohen",
+      "skills": [
+        "AWS",
+        "Python",
+        "PostgreSQL"
+      ],
+      "experience": [
+        {
+          "company": "StartupX",
+          "role": "Backend Engineer",
+          "description": "Built REST APIs on AWS.",
+          "technologies": [
+            "AWS",
+            "Python"
+          ]
+        }
+      ],
+      "projects": []
+    },
+    "client_context": {
+      "company_name": "OrchestraOps",
+      "industry": "DevOps SaaS",
+      "key_challenges": [
+        "Container orchestration at scale"
+      ],
+      "required_skills": [
+        "Kubernetes",
+        "AWS"
+      ],
+      "tech_stack_mentioned": [
+        "Kubernetes",
+        "AWS"
+      ],
+      "tone": "Hands-on"
+    }
+  },
+  "input": {
+    "structured_profile": {
+      "name": "Sam Cohen",
+      "skills": [
+        "AWS",
+        "Python",
+        "PostgreSQL"
+      ],
+      "experience": [
+        {
+          "company": "StartupX",
+          "role": "Backend Engineer",
+          "description": "Built REST APIs on AWS.",
+          "technologies": [
+            "AWS",
+            "Python"
+          ]
+        }
+      ],
+      "projects": []
+    },
+    "client_context": {
+      "company_name": "OrchestraOps",
+      "industry": "DevOps SaaS",
+      "key_challenges": [
+        "Container orchestration at scale"
+      ],
+      "required_skills": [
+        "Kubernetes",
+        "AWS"
+      ],
+      "tech_stack_mentioned": [
+        "Kubernetes",
+        "AWS"
+      ],
+      "tone": "Hands-on"
+    }
+  },
+  "expectations": {
+    "must_not_claim": [
+      "Kubernetes"
+    ]
+  }
+}

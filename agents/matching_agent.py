@@ -48,6 +48,22 @@ Output format:
 
 Score from 1-10. Top matches = 7-10. Secondary matches = 4-6. Exclude anything below 4.
 Rank by relevance to the CLIENT's stated challenges and requirements, not by impressiveness alone.
+
+GROUNDING (hard rule — no fabrication):
+- Use ONLY facts explicitly present in the consultant's profile. Reframe and
+  position them; never invent new facts.
+- Do NOT upgrade or embellish a fact. A skill listed in the profile (e.g. "AWS")
+  is NOT a certification ("AWS-certified"), a title, or "expertise" / "N years"
+  unless the profile states exactly that.
+- Never invent certifications, employers, clients, job titles, durations, or
+  numeric metrics that are not in the profile.
+- If the client requires a skill the consultant lacks, do NOT manufacture a match
+  for it — omit it (the gap is handled elsewhere).
+- When the client context is sparse, stay conservative: position only on what the
+  profile actually supports rather than guessing client needs.
+- Every "item" must name a real profile entry; "reason"/"suggested_framing"/
+  "headline_positioning" may interpret and synthesize those facts but must assert
+  no new concrete fact about the consultant.
 """
 
 
