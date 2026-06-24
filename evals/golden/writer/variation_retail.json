@@ -1,0 +1,106 @@
+{
+  "id": "variation_retail",
+  "agent": "writer",
+  "description": "Retail data modernization package.",
+  "tags": [
+    "happy"
+  ],
+  "source": {
+    "structured_profile": {
+      "name": "Dana Levi",
+      "title": "Data Consultant",
+      "summary": "Healthcare data warehousing and HIPAA-compliant analytics.",
+      "skills": [
+        "Snowflake",
+        "dbt",
+        "Python",
+        "HIPAA compliance",
+        "ETL"
+      ],
+      "experience": [
+        {
+          "company": "DataCore",
+          "role": "Data Consultant",
+          "duration": "2018-Present",
+          "description": "Built HIPAA-compliant analytics warehouse for a hospital network.",
+          "technologies": [
+            "Snowflake",
+            "dbt"
+          ]
+        }
+      ],
+      "projects": [],
+      "education": [],
+      "certifications": [],
+      "tone_markers": "Careful, compliance-focused."
+    },
+    "client_context": {
+      "company_name": "RetailNova",
+      "industry": "Retail analytics",
+      "required_skills": [
+        "Snowflake",
+        "ETL"
+      ],
+      "tech_stack_mentioned": [
+        "Snowflake"
+      ],
+      "tone": "pragmatic"
+    }
+  },
+  "input": {
+    "relevance_map": {
+      "top_matches": [
+        {
+          "type": "skill",
+          "item": "Snowflake",
+          "relevance_score": 8,
+          "reason": "fit",
+          "suggested_framing": "lead"
+        }
+      ],
+      "secondary_matches": [],
+      "client_tone_match": "pragmatic",
+      "headline_positioning": "Snowflake modernization lead"
+    },
+    "structured_profile": {
+      "name": "Dana Levi",
+      "title": "Data Consultant",
+      "summary": "Healthcare data warehousing and HIPAA-compliant analytics.",
+      "skills": [
+        "Snowflake",
+        "dbt",
+        "Python",
+        "HIPAA compliance",
+        "ETL"
+      ],
+      "experience": [
+        {
+          "company": "DataCore",
+          "role": "Data Consultant",
+          "duration": "2018-Present",
+          "description": "Built HIPAA-compliant analytics warehouse for a hospital network.",
+          "technologies": [
+            "Snowflake",
+            "dbt"
+          ]
+        }
+      ],
+      "projects": [],
+      "education": [],
+      "certifications": [],
+      "tone_markers": "Careful, compliance-focused."
+    },
+    "client_context": {
+      "company_name": "RetailNova",
+      "industry": "Retail analytics",
+      "required_skills": [
+        "Snowflake",
+        "ETL"
+      ],
+      "tech_stack_mentioned": [
+        "Snowflake"
+      ],
+      "tone": "pragmatic"
+    }
+  }
+}

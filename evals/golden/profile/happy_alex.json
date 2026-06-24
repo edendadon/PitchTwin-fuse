@@ -1,0 +1,14 @@
+{
+  "id": "happy_alex",
+  "agent": "profile",
+  "description": "Full senior-consultant CV extracted to structured profile.",
+  "tags": [
+    "happy"
+  ],
+  "source": {
+    "raw_profile": "Alex Rivera \u2014 Senior Technology Consultant\n9 years in cloud migration and microservices for financial services. Led a 14-month AWS migration of 60+ systems for a Tier-1 bank, cutting infrastructure cost 35%. Skills: AWS, microservices, Python, Kafka, Terraform. AWS Solutions Architect \u2013 Professional. B.Sc. Computer Science, Tel Aviv University, 2015."
+  },
+  "input": {
+    "raw_profile": "Alex Rivera \u2014 Senior Technology Consultant\n9 years in cloud migration and microservices for financial services. Led a 14-month AWS migration of 60+ systems for a Tier-1 bank, cutting infrastructure cost 35%. Skills: AWS, microservices, Python, Kafka, Terraform. AWS Solutions Architect \u2013 Professional. B.Sc. Computer Science, Tel Aviv University, 2015."
+  }
+}

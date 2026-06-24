@@ -1,0 +1,14 @@
+{
+  "id": "empty_transcript",
+  "agent": "debrief",
+  "description": "No conversation took place (edge).",
+  "tags": [
+    "edge"
+  ],
+  "source": {
+    "transcript": []
+  },
+  "input": {
+    "transcript": []
+  }
+}

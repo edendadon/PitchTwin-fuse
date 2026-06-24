@@ -160,3 +160,39 @@ def test_update_baseline_captures_a_clean_run(tmp_path, monkeypatch):
     assert code == evalrun.EXIT_OK
     assert (tmp_path / "matching.json").exists()
     print("PASS: --update-baseline captures a clean run")
+
+
+# --- coverage enforcement (US3, offline) ------------------------------------
+
+def test_coverage_failure_when_agent_short_on_cases():
+    short = rpt.coverage_failures(["matching", "ghost"], {"matching": 5, "ghost": 0}, min_cases=5)
+    assert short == ["ghost"]
+    print("PASS: coverage gate flags an agent with too few cases")
+
+
+def test_coverage_ok_when_all_agents_meet_minimum():
+    assert rpt.coverage_failures(["matching"], {"matching": 5}, min_cases=5) == []
+    print("PASS: coverage gate passes when minimum met")
+
+
+# --- golden-set coverage + integrity (US3, offline) -------------------------
+
+def test_all_seven_agents_have_at_least_five_cases():
+    from evals.harness import AGENT_NAMES, count_cases
+
+    counts = count_cases()
+    assert set(counts) >= set(AGENT_NAMES)
+    short = {a: n for a, n in counts.items() if n < 5}
+    assert not short, f"agents below 5 cases: {short}"
+    assert sum(counts.values()) >= 35
+    print(f"PASS: all 7 agents covered, {sum(counts.values())} cases total")
+
+
+def test_all_golden_cases_load_and_validate():
+    from evals.harness import load_cases
+
+    cases = load_cases()  # validates each against the GoldenCase model + dir match
+    assert len(cases) >= 35
+    for c in cases:
+        assert c.id and c.agent and c.tags and isinstance(c.input, dict)
+    print(f"PASS: {len(cases)} golden cases load and validate")

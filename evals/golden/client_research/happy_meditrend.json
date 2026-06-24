@@ -1,0 +1,16 @@
+{
+  "id": "happy_meditrend",
+  "agent": "client_research",
+  "description": "Healthcare analytics brief.",
+  "tags": [
+    "happy"
+  ],
+  "source": {
+    "client_brief": "MediTrend, a healthcare analytics company, has fragmented reporting across hospitals. We need a Snowflake-based warehouse with HIPAA-compliant ETL. Snowflake and dbt experience required.",
+    "company_name": "MediTrend"
+  },
+  "input": {
+    "client_brief": "MediTrend, a healthcare analytics company, has fragmented reporting across hospitals. We need a Snowflake-based warehouse with HIPAA-compliant ETL. Snowflake and dbt experience required.",
+    "company_name": "MediTrend"
+  }
+}

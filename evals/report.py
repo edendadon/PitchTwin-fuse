@@ -23,6 +23,13 @@ from typing import Any
 
 BASELINE_DIR = Path(__file__).parent / "baselines" / "current"
 
+MIN_CASES = 5  # every agent must have at least this many golden cases (FR-016)
+
+
+def coverage_failures(agents: list[str], counts: dict[str, int], min_cases: int = MIN_CASES) -> list[str]:
+    """Agents (among `agents`) that have fewer than `min_cases` golden cases."""
+    return [a for a in agents if counts.get(a, 0) < min_cases]
+
 
 def _baseline_path(agent: str) -> Path:
     return BASELINE_DIR / f"{agent}.json"

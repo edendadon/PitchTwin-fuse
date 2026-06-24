@@ -57,43 +57,134 @@ def _as_infra(exc: Exception) -> InfraError:
 
 
 # --- per-agent invokers (lazy imports) -------------------------------------
+# All agents now share one calling convention: run_<agent>(...inputs..., llm_client).
+# Each invoker maps a GoldenCase.input dict to the agent's positional args and
+# wraps provider/model failures as InfraError.
+
+def _client():
+    from llm_client import LLMClient
+
+    return LLMClient()
+
 
 def _invoke_matching(case: GoldenCase) -> dict[str, Any]:
-    # The Issue #1 harness migration changed the signature back to taking an
-    # llm_client (run_matching_agent now wraps AgentHarness over LLMClient).
     from agents.matching_agent import run_matching_agent
-    from llm_client import LLMClient
 
     inp = case.input
     try:
-        return run_matching_agent(inp["structured_profile"], inp["client_context"], LLMClient())
+        return run_matching_agent(inp["structured_profile"], inp["client_context"], _client())
     except KeyError:
         raise
-    except Exception as exc:  # provider/model failure
+    except Exception as exc:
         raise _as_infra(exc) from exc
 
 
-def _matching_schema() -> type[BaseModel]:
-    # Schemas now live in agents/schemas.py (Issue #1 harness).
-    from agents.schemas import MatchingOutput
+def _invoke_profile(case: GoldenCase) -> dict[str, Any]:
+    from agents.profile_agent import run_profile_agent
 
-    return MatchingOutput
+    try:
+        return run_profile_agent(case.input["raw_profile"], _client())
+    except KeyError:
+        raise
+    except Exception as exc:
+        raise _as_infra(exc) from exc
 
 
-# Registry. US1 ships the `matching` entry (migrated agent, has a schema).
-# Remaining agents are registered in US3 (T019).
+def _invoke_client_research(case: GoldenCase) -> dict[str, Any]:
+    from agents.client_research_agent import run_client_research_agent
+
+    inp = case.input
+    try:
+        return run_client_research_agent(inp["client_brief"], inp["company_name"], _client())
+    except KeyError:
+        raise
+    except Exception as exc:
+        raise _as_infra(exc) from exc
+
+
+def _invoke_writer(case: GoldenCase) -> dict[str, Any]:
+    from agents.writer_agent import run_writer_agent
+
+    inp = case.input
+    try:
+        return run_writer_agent(
+            inp["relevance_map"], inp["structured_profile"], inp["client_context"], _client()
+        )
+    except KeyError:
+        raise
+    except Exception as exc:
+        raise _as_infra(exc) from exc
+
+
+def _invoke_gap(case: GoldenCase) -> dict[str, Any]:
+    from agents.gap_agent import run_gap_agent
+
+    inp = case.input
+    try:
+        return run_gap_agent(inp["client_context"], inp["structured_profile"], _client())
+    except KeyError:
+        raise
+    except Exception as exc:
+        raise _as_infra(exc) from exc
+
+
+def _invoke_debrief(case: GoldenCase) -> dict[str, Any]:
+    from agents.debrief_agent import run_debrief_agent
+
+    try:
+        return run_debrief_agent(case.input["transcript"], _client())
+    except KeyError:
+        raise
+    except Exception as exc:
+        raise _as_infra(exc) from exc
+
+
+def _invoke_persona(case: GoldenCase) -> str:
+    # Persona is free text: build the grounded system prompt, then answer one message.
+    from agents.persona_agent import build_system_prompt, run_persona_agent
+
+    inp = case.input
+    try:
+        system_prompt = build_system_prompt(
+            inp.get("structured_profile", {}), inp.get("relevance_map", {})
+        )
+        return run_persona_agent(
+            inp["user_message"], inp.get("conversation_history", []), system_prompt, _client()
+        )
+    except KeyError:
+        raise
+    except Exception as exc:
+        raise _as_infra(exc) from exc
+
+
+# Lazy schema resolvers (agents/schemas.py from the Issue #1 harness).
+def _schema(name: str) -> Callable[[], type[BaseModel]]:
+    def resolve() -> type[BaseModel]:
+        import agents.schemas as s
+
+        return getattr(s, name)
+
+    return resolve
+
+
 AGENT_REGISTRY: dict[str, AgentEntry] = {
-    "matching": AgentEntry(
-        name="matching",
-        invoke=_invoke_matching,
-        output_schema=None,  # resolved lazily via get_output_schema to stay offline at import
-        output_kind="structured",
-    ),
+    "profile": AgentEntry("profile", _invoke_profile, None, "structured"),
+    "client_research": AgentEntry("client_research", _invoke_client_research, None, "structured"),
+    "matching": AgentEntry("matching", _invoke_matching, None, "structured"),
+    "writer": AgentEntry("writer", _invoke_writer, None, "structured"),
+    "gap": AgentEntry("gap", _invoke_gap, None, "structured"),
+    "persona": AgentEntry("persona", _invoke_persona, None, "text"),  # free text, schema SKIP
+    "debrief": AgentEntry("debrief", _invoke_debrief, None, "structured"),
 }
 
-# Lazy schema resolvers, kept separate so importing harness never imports agents.
 _SCHEMA_RESOLVERS: dict[str, Callable[[], type[BaseModel]]] = {
-    "matching": _matching_schema,
+    "profile": _schema("ProfileOutput"),
+    "client_research": _schema("ClientContextOutput"),
+    "matching": _schema("MatchingOutput"),
+    "writer": _schema("WriterOutput"),
+    "gap": _schema("GapAnalysisOutput"),
+    "debrief": _schema("DebriefOutput"),
+    # persona: no schema (free text) -> get_output_schema returns None -> schema gate SKIP
 }
 
 

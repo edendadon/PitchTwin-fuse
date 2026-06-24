@@ -1,0 +1,86 @@
+{
+  "id": "edge_sparse",
+  "agent": "gap",
+  "description": "Sparse profile vs real requirements.",
+  "tags": [
+    "edge"
+  ],
+  "source": {
+    "client_context": {
+      "company_name": "NovaPay Financial",
+      "industry": "FinTech / Payments",
+      "key_challenges": [
+        "Legacy Java monolith",
+        "PCI-DSS compliance"
+      ],
+      "required_skills": [
+        "AWS",
+        "Microservices",
+        "Payments domain"
+      ],
+      "nice_to_have_skills": [
+        "PCI-DSS",
+        "Kafka"
+      ],
+      "tech_stack_mentioned": [
+        "AWS",
+        "Java",
+        "Kafka"
+      ],
+      "tone": "Direct, technical",
+      "keywords_to_mirror": [
+        "AWS",
+        "microservices",
+        "PCI-DSS"
+      ]
+    },
+    "structured_profile": {
+      "name": "Lee Park",
+      "skills": [
+        "Python"
+      ],
+      "experience": [],
+      "projects": [],
+      "certifications": []
+    }
+  },
+  "input": {
+    "client_context": {
+      "company_name": "NovaPay Financial",
+      "industry": "FinTech / Payments",
+      "key_challenges": [
+        "Legacy Java monolith",
+        "PCI-DSS compliance"
+      ],
+      "required_skills": [
+        "AWS",
+        "Microservices",
+        "Payments domain"
+      ],
+      "nice_to_have_skills": [
+        "PCI-DSS",
+        "Kafka"
+      ],
+      "tech_stack_mentioned": [
+        "AWS",
+        "Java",
+        "Kafka"
+      ],
+      "tone": "Direct, technical",
+      "keywords_to_mirror": [
+        "AWS",
+        "microservices",
+        "PCI-DSS"
+      ]
+    },
+    "structured_profile": {
+      "name": "Lee Park",
+      "skills": [
+        "Python"
+      ],
+      "experience": [],
+      "projects": [],
+      "certifications": []
+    }
+  }
+}

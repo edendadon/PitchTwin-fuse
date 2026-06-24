@@ -1,0 +1,16 @@
+{
+  "id": "edge_terse",
+  "agent": "client_research",
+  "description": "Very terse brief.",
+  "tags": [
+    "edge"
+  ],
+  "source": {
+    "client_brief": "We need help with our systems.",
+    "company_name": "VagueCorp"
+  },
+  "input": {
+    "client_brief": "We need help with our systems.",
+    "company_name": "VagueCorp"
+  }
+}

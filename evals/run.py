@@ -28,7 +28,7 @@ from pathlib import Path
 import pytest
 
 from evals import report as rpt
-from evals.harness import AGENT_NAMES, registered_agents
+from evals.harness import AGENT_NAMES, count_cases, registered_agents
 
 EVALS_DIR = Path(__file__).parent
 REPORT_PATH = EVALS_DIR / ".reports" / "last_run.json"
@@ -47,18 +47,27 @@ def _parse_args(argv: list[str]) -> argparse.Namespace:
     sel.add_argument("--all", action="store_true", help="evaluate all registered agents")
     p.add_argument("--update-baseline", action="store_true", help="(US2) capture/refresh baseline")
     p.add_argument("--samples", type=int, default=1, help="LLM-judge samples (majority vote)")
+    p.add_argument("--workers", type=int, default=6,
+                   help="parallel cases (pytest-xdist); 1 = serial")
     p.add_argument("--json", dest="json_out", help="also write the JSON report to this path")
     return p.parse_args(argv)
 
 
-def _run_pytest(agents: list[str], samples: int) -> None:
+def _run_pytest(agents: list[str], samples: int, workers: int) -> None:
     os.environ["EVALS_AGENTS"] = ",".join(agents)
-    os.environ["EVALS_REPORT_PATH"] = str(REPORT_PATH)
     os.environ["EVALS_SAMPLES"] = str(samples)
-    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    if REPORT_PATH.exists():
-        REPORT_PATH.unlink()
-    pytest.main(["-q", "-p", "no:cacheprovider", str(EVALS_DIR / "test_eval.py")])
+    rpt_results_reset()
+    args = ["-q", "-p", "no:cacheprovider"]
+    if workers and workers > 1:
+        args += ["-n", str(workers)]  # pytest-xdist: run cases in parallel
+    args.append(str(EVALS_DIR / "test_eval.py"))
+    pytest.main(args)
+
+
+def rpt_results_reset() -> None:
+    from evals import results
+
+    results.reset()
 
 
 def _summarize(results: list[dict], *, update_baseline: bool) -> tuple[int, str]:
@@ -135,17 +144,32 @@ def main(argv: list[str] | None = None) -> int:
         print("[evals] no registered agents to evaluate.", file=sys.stderr)
         return EXIT_USAGE
 
-    _run_pytest(agents, args.samples)
+    # Coverage gate (FR-016): every selected agent must have >= MIN_CASES golden
+    # cases. Checked before invoking the model so it is fast and free.
+    counts = count_cases()
+    short = rpt.coverage_failures(agents, counts)
+    if short:
+        print(f"\nCOVERAGE FAILURE: agent(s) with < {rpt.MIN_CASES} golden cases:")
+        for a in short:
+            print(f"  {a}: {counts.get(a, 0)} case(s)")
+        return EXIT_COVERAGE
 
-    if not REPORT_PATH.exists():
-        print("[evals] no report produced (collection error?).", file=sys.stderr)
+    _run_pytest(agents, args.samples, args.workers)
+
+    from evals import results
+
+    case_results = results.read_all()
+    if not case_results:
+        print("[evals] no results produced (collection error?).", file=sys.stderr)
         return EXIT_INFRA
-    report = json.loads(REPORT_PATH.read_text())
 
+    # Persist a combined machine-readable report.
+    REPORT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    REPORT_PATH.write_text(json.dumps({"results": case_results}, indent=2))
     if args.json_out:
         shutil.copyfile(REPORT_PATH, args.json_out)
 
-    code, summary = _summarize(report.get("results", []), update_baseline=args.update_baseline)
+    code, summary = _summarize(case_results, update_baseline=args.update_baseline)
     print(summary)
     return code
 

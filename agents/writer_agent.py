@@ -39,6 +39,18 @@ Rules:
 - The tailored CV should reorder and reframe — not fabricate.
 - Talking points should be ready to say out loud, not bullet headers.
 - Write the bio in the consultant's voice/style as indicated by tone_markers.
+
+GROUNDING (hard rule — no fabrication):
+- NEVER invent numbers or metrics. Do not write uptime figures, transaction
+  volumes, system counts, percentages, durations, or team sizes unless that
+  exact figure appears in the profile. No "99.99% uptime", "millions of
+  transactions", "50+ systems" unless the profile states it.
+- NEVER attribute to the consultant a skill, technology, employer, client,
+  project, or certification that is not in the profile. The client's required
+  skills/tech are the CLIENT's — do not restate them as the consultant's
+  experience. If the profile lacks something the client wants, omit it.
+- Reframe and emphasize real profile facts; when the profile is sparse, write a
+  shorter, honest CV/bio rather than padding it with invented capabilities.
 """
 
 

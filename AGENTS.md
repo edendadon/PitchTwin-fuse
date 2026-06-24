@@ -137,6 +137,8 @@ This project is indexed by GitNexus as **PitchTwin-fuse** (218 symbols, 535 rela
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
 shell commands, and other important information, read the current plan:
+`specs/004-agent-eval-framework/plan.md`
+shell commands, and other important information, read the current plan:
 `specs/005-ci-security-scanning/plan.md` (feature 005 — CI security scanning:
 Trivy + CodeQL + Dependabot).
 <!-- SPECKIT END -->

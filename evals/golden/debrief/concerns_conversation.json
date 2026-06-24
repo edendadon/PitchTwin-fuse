@@ -1,0 +1,36 @@
+{
+  "id": "concerns_conversation",
+  "agent": "debrief",
+  "description": "Client voices a hesitation.",
+  "tags": [
+    "happy"
+  ],
+  "source": {
+    "transcript": [
+      {
+        "role": "user",
+        "content": "I'm worried you lack payments-domain depth.",
+        "timestamp": "2026-01-01T11:00:00"
+      },
+      {
+        "role": "assistant",
+        "content": "Fair concern \u2014 my payments exposure is via the bank migration.",
+        "timestamp": "2026-01-01T11:00:06"
+      }
+    ]
+  },
+  "input": {
+    "transcript": [
+      {
+        "role": "user",
+        "content": "I'm worried you lack payments-domain depth.",
+        "timestamp": "2026-01-01T11:00:00"
+      },
+      {
+        "role": "assistant",
+        "content": "Fair concern \u2014 my payments exposure is via the bank migration.",
+        "timestamp": "2026-01-01T11:00:06"
+      }
+    ]
+  }
+}

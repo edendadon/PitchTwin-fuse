@@ -1,0 +1,118 @@
+{
+  "id": "variation_healthcare",
+  "agent": "gap",
+  "description": "Healthcare fit assessment.",
+  "tags": [
+    "happy"
+  ],
+  "source": {
+    "client_context": {
+      "company_name": "MediTrend",
+      "industry": "Healthcare analytics",
+      "key_challenges": [
+        "Fragmented reporting",
+        "HIPAA compliance"
+      ],
+      "required_skills": [
+        "Snowflake",
+        "HIPAA compliance",
+        "ETL"
+      ],
+      "nice_to_have_skills": [
+        "dbt"
+      ],
+      "tech_stack_mentioned": [
+        "Snowflake",
+        "dbt"
+      ],
+      "tone": "Careful",
+      "keywords_to_mirror": [
+        "Snowflake",
+        "HIPAA"
+      ]
+    },
+    "structured_profile": {
+      "name": "Dana Levi",
+      "title": "Data Consultant",
+      "summary": "Healthcare data warehousing and HIPAA-compliant analytics.",
+      "skills": [
+        "Snowflake",
+        "dbt",
+        "Python",
+        "HIPAA compliance",
+        "ETL"
+      ],
+      "experience": [
+        {
+          "company": "DataCore",
+          "role": "Data Consultant",
+          "duration": "2018-Present",
+          "description": "Built HIPAA-compliant analytics warehouse for a hospital network.",
+          "technologies": [
+            "Snowflake",
+            "dbt"
+          ]
+        }
+      ],
+      "projects": [],
+      "education": [],
+      "certifications": [],
+      "tone_markers": "Careful, compliance-focused."
+    }
+  },
+  "input": {
+    "client_context": {
+      "company_name": "MediTrend",
+      "industry": "Healthcare analytics",
+      "key_challenges": [
+        "Fragmented reporting",
+        "HIPAA compliance"
+      ],
+      "required_skills": [
+        "Snowflake",
+        "HIPAA compliance",
+        "ETL"
+      ],
+      "nice_to_have_skills": [
+        "dbt"
+      ],
+      "tech_stack_mentioned": [
+        "Snowflake",
+        "dbt"
+      ],
+      "tone": "Careful",
+      "keywords_to_mirror": [
+        "Snowflake",
+        "HIPAA"
+      ]
+    },
+    "structured_profile": {
+      "name": "Dana Levi",
+      "title": "Data Consultant",
+      "summary": "Healthcare data warehousing and HIPAA-compliant analytics.",
+      "skills": [
+        "Snowflake",
+        "dbt",
+        "Python",
+        "HIPAA compliance",
+        "ETL"
+      ],
+      "experience": [
+        {
+          "company": "DataCore",
+          "role": "Data Consultant",
+          "duration": "2018-Present",
+          "description": "Built HIPAA-compliant analytics warehouse for a hospital network.",
+          "technologies": [
+            "Snowflake",
+            "dbt"
+          ]
+        }
+      ],
+      "projects": [],
+      "education": [],
+      "certifications": [],
+      "tone_markers": "Careful, compliance-focused."
+    }
+  }
+}

@@ -26,28 +26,33 @@ NAME = "hallucination"
 
 JUDGE_SYSTEM = """You are a grounding auditor for a consulting-proposal AI.
 
-You receive a SOURCE (the only true facts about the consultant and the client)
-and an OUTPUT produced by an agent. Decide whether the OUTPUT fabricates any
-CONCRETE FACT not present in the SOURCE.
+You receive a SOURCE (the ONLY true facts — it may include the consultant's
+profile, the client's context/requirements, and/or a conversation transcript)
+and an OUTPUT produced by an agent. Decide ONE thing:
 
-A CONCRETE FACT is a specific, checkable assertion: a named skill or technology,
-a named employer/client/project, a certification, a numeric metric, a job title,
-or a duration. Flag it as fabricated ONLY if no such fact (or an obvious synonym)
-appears in the SOURCE.
+  Does the OUTPUT assert that the CONSULTANT personally possesses or has done a
+  specific thing that the SOURCE does not support?
 
-The following are GROUNDED — never flag them:
-- Strategic positioning, headlines, and "suggested framing" that synthesize,
-  interpret, or generalize from SOURCE facts (this agent's JOB is to produce
-  persuasive framing). E.g. if the SOURCE shows an AWS migration for a bank,
-  then "specializing in regulated cloud transformations for financial services"
-  is grounded synthesis, not fabrication.
-- Reframing, summarizing, or combining SOURCE facts.
+A fabrication is a NEW CONCRETE FACT *attributed to the consultant* — a skill,
+technology, employer, client, project, certification, job title, duration, or a
+numeric metric/achievement (e.g. "99.99% uptime", "50+ systems", "millions of
+transactions") — that does not appear in the SOURCE. Invented numbers/metrics
+about the consultant's own work are the clearest fabrications.
+
+The following are ALWAYS GROUNDED — never flag them:
+- Facts about the CLIENT or the engagement: the client's industry, needs,
+  required skills, tech stack, or challenges (these come from the client context).
+- Gap analysis: naming skills/technologies the consultant LACKS or that the
+  client requires, and any description/mitigation/framing of those gaps. Saying
+  the consultant is missing "SAP" is NOT claiming the consultant has SAP.
+- Recommendations, advice, suggested talking points, questions to ask, and
+  next steps (these are guidance, not claims about the consultant's background).
+- Strategic positioning, headlines, persuasive framing, summaries, and
+  reasonable synthesis/generalization of SOURCE facts.
 - Honest declinations ("not in my background", "no direct experience with X").
-- Generic advice or reasoning that asserts no new concrete fact.
 
-Only mark grounded=false when the OUTPUT states a NEW concrete fact about the
-consultant that the SOURCE does not support (e.g. a skill, employer, cert, or
-metric that simply isn't there).
+Only set grounded=false when the OUTPUT credits the CONSULTANT with a concrete
+skill/employer/cert/project/metric that simply is not in the SOURCE.
 
 Respond with valid JSON only — no markdown, no prose:
 {"grounded": true, "fabricated_claims": []}
