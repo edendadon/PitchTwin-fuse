@@ -156,3 +156,19 @@ def test_dashboard_links_to_trace_for_traced_proposals(client):
 
     assert ">Trace<" in html
     assert f"/proposal/{proposal_id}/trace" in html
+
+
+def test_proposal_page_links_to_trace_even_without_usage(client):
+    """The trace must be reachable for any proposal, including pre-#6 ones with
+    no usage data and no twin session (header button + inline link)."""
+    import db
+    from models import Proposal
+
+    # A proposal with no usage, no trace_id, no twin session (pre-#6 shape).
+    db.save_proposal(
+        Proposal(id="no-usage-1", consultant_id="c", client_brief="b", company_name="Acme")
+    )
+    html = client.get("/proposal/no-usage-1").get_data(as_text=True)
+
+    assert "/proposal/no-usage-1/trace" in html
+    assert "Debug Trace" in html  # prominent header button, always present
