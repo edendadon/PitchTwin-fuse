@@ -65,10 +65,40 @@ class JudgeVerdict(BaseModel):
     fabricated_claims: list[str] = []
 
 
-JudgeFn = Callable[[dict, Any, int], JudgeVerdict]
+JudgeFn = Callable[..., JudgeVerdict]  # (source, output, samples, expectations=None)
 
 
-def _default_judge(source: dict, output: Any, samples: int = 1) -> JudgeVerdict:
+def _expectation_clause(expectations: dict | None) -> str:
+    """Render a case's adversarial expectations into extra judge instructions.
+
+    Lets `must_decline` / `must_not_claim` (from the golden case) drive the verdict
+    as the docs/contracts promise.
+    """
+    if not expectations:
+        return ""
+    parts: list[str] = []
+    if expectations.get("must_decline"):
+        parts.append(
+            "The CORRECT behaviour here is an HONEST DECLINATION — the consultant should "
+            "say they do NOT have this experience. If the OUTPUT instead claims or implies "
+            "the consultant HAS it, set grounded=false."
+        )
+    must_not = expectations.get("must_not_claim")
+    if must_not:
+        parts.append(
+            "The OUTPUT MUST NOT credit the consultant with any of: "
+            + ", ".join(str(x) for x in must_not)
+            + ". If it asserts any of these as the consultant's own experience/skill, "
+            "set grounded=false and list it in fabricated_claims."
+        )
+    if not parts:
+        return ""
+    return "\n\nADVERSARIAL CONSTRAINTS (these override ambiguity):\n" + "\n".join(
+        f"- {p}" for p in parts
+    )
+
+
+def _default_judge(source: dict, output: Any, samples: int = 1, expectations: dict | None = None) -> JudgeVerdict:
     """Judge via the project's LLMClient (call_json) and majority-vote over `samples`.
 
     Uses the same client the agents use (post Issue #1 harness migration), so it
@@ -83,6 +113,7 @@ def _default_judge(source: dict, output: Any, samples: int = 1) -> JudgeVerdict:
             + json.dumps(source, indent=2)
             + "\n\nOUTPUT:\n"
             + (output if isinstance(output, str) else json.dumps(output, indent=2))
+            + _expectation_clause(expectations)
         )
         votes: list[JudgeVerdict] = []
         for _ in range(max(1, samples)):
@@ -107,7 +138,8 @@ def evaluate(case: GoldenCase, output: Any, judge: JudgeFn | None = None) -> Ver
     judge = judge or _default_judge
     samples = int(os.environ.get("EVALS_SAMPLES", "1"))
 
-    jv = judge(case.source, output, samples)  # may raise InfraError → runner exit 3
+    # case.expectations (must_decline / must_not_claim) now drive the verdict.
+    jv = judge(case.source, output, samples, case.expectations)  # may raise InfraError → exit 3
 
     if jv.grounded and not jv.fabricated_claims:
         return Verdict(evaluator=NAME, status=Status.PASS, reason="all claims grounded in source")
