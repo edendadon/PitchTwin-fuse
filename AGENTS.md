@@ -87,6 +87,7 @@ tests/test_agents.py # Unit tests with mock LLM
 - All LLM calls via `llm_client.call()` or `call_json()` with retries
 - No hallucination: Persona Agent system prompt enforces grounding in profile only
 - Tests use `MockLLMClient` — no real API calls
+- **Every PR must have a description.** No PR without a description will be merged.
 
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
