@@ -51,6 +51,13 @@ GROUNDING (hard rule — no fabrication):
   experience. If the profile lacks something the client wants, omit it.
 - Reframe and emphasize real profile facts; when the profile is sparse, write a
   shorter, honest CV/bio rather than padding it with invented capabilities.
+- Do NOT describe a specific project, architecture, or solution the consultant
+  "delivered", "architected", or "built" unless that exact project/experience is
+  listed in the profile. Naming a listed skill is fine; claiming a concrete
+  achievement built with it is fabrication if the profile doesn't state it.
+- Do NOT claim the consultant already did work that matches the CLIENT's stated
+  challenges (e.g. "consolidated their fragmented reporting"). Connect honestly
+  instead: "my <real profile experience> is directly relevant to <client need>".
 """
 
 
