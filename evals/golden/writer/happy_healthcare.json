@@ -1,0 +1,132 @@
+{
+  "id": "happy_healthcare",
+  "agent": "writer",
+  "description": "Healthcare consultant package.",
+  "tags": [
+    "happy"
+  ],
+  "source": {
+    "structured_profile": {
+      "name": "Dana Levi",
+      "title": "Data Consultant",
+      "summary": "Healthcare data warehousing and HIPAA-compliant analytics.",
+      "skills": [
+        "Snowflake",
+        "dbt",
+        "Python",
+        "HIPAA compliance",
+        "ETL"
+      ],
+      "experience": [
+        {
+          "company": "DataCore",
+          "role": "Data Consultant",
+          "duration": "2018-Present",
+          "description": "Built HIPAA-compliant analytics warehouse for a hospital network.",
+          "technologies": [
+            "Snowflake",
+            "dbt"
+          ]
+        }
+      ],
+      "projects": [],
+      "education": [],
+      "certifications": [],
+      "tone_markers": "Careful, compliance-focused."
+    },
+    "client_context": {
+      "company_name": "MediTrend",
+      "industry": "Healthcare analytics",
+      "key_challenges": [
+        "Fragmented reporting",
+        "HIPAA compliance"
+      ],
+      "required_skills": [
+        "Snowflake",
+        "HIPAA compliance",
+        "ETL"
+      ],
+      "nice_to_have_skills": [
+        "dbt"
+      ],
+      "tech_stack_mentioned": [
+        "Snowflake",
+        "dbt"
+      ],
+      "tone": "Careful",
+      "keywords_to_mirror": [
+        "Snowflake",
+        "HIPAA"
+      ]
+    }
+  },
+  "input": {
+    "relevance_map": {
+      "top_matches": [
+        {
+          "type": "skill",
+          "item": "Snowflake",
+          "relevance_score": 9,
+          "reason": "core need",
+          "suggested_framing": "lead"
+        }
+      ],
+      "secondary_matches": [],
+      "client_tone_match": "careful",
+      "headline_positioning": "HIPAA-aware data lead"
+    },
+    "structured_profile": {
+      "name": "Dana Levi",
+      "title": "Data Consultant",
+      "summary": "Healthcare data warehousing and HIPAA-compliant analytics.",
+      "skills": [
+        "Snowflake",
+        "dbt",
+        "Python",
+        "HIPAA compliance",
+        "ETL"
+      ],
+      "experience": [
+        {
+          "company": "DataCore",
+          "role": "Data Consultant",
+          "duration": "2018-Present",
+          "description": "Built HIPAA-compliant analytics warehouse for a hospital network.",
+          "technologies": [
+            "Snowflake",
+            "dbt"
+          ]
+        }
+      ],
+      "projects": [],
+      "education": [],
+      "certifications": [],
+      "tone_markers": "Careful, compliance-focused."
+    },
+    "client_context": {
+      "company_name": "MediTrend",
+      "industry": "Healthcare analytics",
+      "key_challenges": [
+        "Fragmented reporting",
+        "HIPAA compliance"
+      ],
+      "required_skills": [
+        "Snowflake",
+        "HIPAA compliance",
+        "ETL"
+      ],
+      "nice_to_have_skills": [
+        "dbt"
+      ],
+      "tech_stack_mentioned": [
+        "Snowflake",
+        "dbt"
+      ],
+      "tone": "Careful",
+      "keywords_to_mirror": [
+        "Snowflake",
+        "HIPAA"
+      ]
+    }
+  }
+}

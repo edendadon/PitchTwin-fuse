@@ -26,6 +26,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+import logfire
+
+from observability import configure_logfire, tag_user_on_current_span
+
+# Configure tracing before instrumenting anything else.
+configure_logfire()
+
 import db
 from models import ConsultantProfile
 from orchestrator import (
@@ -39,10 +46,15 @@ from orchestrator.memory import MemoryStore
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "pitchtwin-dev-secret")
 
+# One span per incoming request, across every route.
+logfire.instrument_flask(app)
+
 
 @app.before_request
 def setup():
     db.init_db()
+    # Tag the request span with the static Logfire user (if configured).
+    tag_user_on_current_span()
 
 
 # -----------------------------------------------------------------------
@@ -354,4 +366,5 @@ def debug_trace(trace_id):
 
 if __name__ == "__main__":
     db.init_db()
-    app.run(host="0.0.0.0", port=5000, debug=os.getenv("FLASK_DEBUG", "0") == "1")
+    port = int(os.getenv("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=os.getenv("FLASK_DEBUG", "0") == "1")

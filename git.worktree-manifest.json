@@ -1,0 +1,11 @@
+{
+  "schema_version": "1.0",
+  "feature": "001-migrate-to-uv",
+  "feature_branch": "001-migrate-to-uv",
+  "worktree_path": "/Users/nir/dev/PitchTwin-fuse/.worktrees/001-migrate-to-uv",
+  "created_at": "2026-06-24T07:01:28Z",
+  "provenance": {
+    "created_by": "worktree-utils.sh",
+    "version": "1.0"
+  }
+}

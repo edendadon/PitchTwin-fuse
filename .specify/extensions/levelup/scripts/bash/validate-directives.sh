@@ -103,20 +103,6 @@ load_constitution() {
     ' "$constitution_path" 2>/dev/null || echo "[]"
 }
 
-extract_frontmatter_field() {
-    local file="$1"
-    local field="$2"
-    awk -v field="$field" '
-        NR == 1 && $0 != "---" { exit }
-        NR > 1 && $0 == "---" { exit }
-        $0 ~ "^" field ":" {
-            sub(/^[^:]+:[[:space:]]*/, "");
-            print;
-            exit
-        }
-    ' "$file" 2>/dev/null || echo ""
-}
-
 load_rules() {
     local rules_dir="${RULES_PATH:-$TEAM_DIRECTIVES/context_modules/rules}"
     
@@ -131,7 +117,6 @@ load_rules() {
     while IFS= read -r -d '' rule_file; do
         local file_path="$rule_file"
         local rule_id=$(basename "$rule_file" .md)
-        local rule_type=$(extract_frontmatter_field "$rule_file" "type")
         
         local statements=$(jq -Rs '
             split("\n") 
@@ -153,8 +138,7 @@ load_rules() {
                 --arg id "$rule_id" \
                 --arg path "$file_path" \
                 --arg stmt "$statement" \
-                --arg type "$rule_type" \
-                '. + [{"id": $id, "file": $path, "statement": $stmt, "type": $type}]')
+                '. + [{"id": $id, "file": $path, "statement": $stmt}]')
         fi
     done < <(find "$rules_dir" -name "*.md" -type f -print0)
     

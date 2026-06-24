@@ -4,10 +4,10 @@
 
 ```bash
 # Local (Python 3.11+)
-pip install -r requirements.txt
+uv sync
 cp .env.example .env
 # Edit .env with GEMINI_API_KEY or GROQ_API_KEY or LITELLM_API_KEY
-python3 app.py
+uv run python app.py
 
 # Docker
 docker-compose up --build
@@ -19,8 +19,8 @@ Open http://localhost:5000
 
 | Task | Command |
 |------|---------|
-| Run tests | `python3 tests/test_agents.py` |
-| Run app locally | `python3 app.py` |
+| Run tests | `uv run python -m pytest tests/test_agents.py` |
+| Run app locally | `uv run python app.py` |
 | Run with Docker | `docker-compose up --build` |
 | Health check | `curl http://localhost:5000/api/health` |
 
@@ -53,6 +53,8 @@ orchestrator.py     # Pipeline runner + threading
 llm_client.py       # LLM wrapper (Gemini/Groq/LiteLLM)
 db.py               # SQLite init + CRUD
 models.py           # Dataclasses: Profile, Proposal, TwinSession
+pyproject.toml      # Project config + dependencies (uv)
+uv.lock             # Locked dependency versions
 agents/             # 7 specialized agents
 spec/               # spec.plan, spec.tasks, spec.arch
 tests/test_agents.py # Unit tests with mock LLM
@@ -85,6 +87,8 @@ tests/test_agents.py # Unit tests with mock LLM
 - All LLM calls via `llm_client.call()` or `call_json()` with retries
 - No hallucination: Persona Agent system prompt enforces grounding in profile only
 - Tests use `MockLLMClient` — no real API calls
+- **Every PR must have a description.** No PR without a description will be merged.
+- **Work in an isolated git worktree on a feature branch off `main`** (`git worktree add .worktrees/<branch> -b <branch> origin/main`). Never edit files directly in the shared main checkout — its branch can change underneath you, moving files mid-task. Never stack feature work on another feature branch.
 
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
@@ -132,6 +136,10 @@ This project is indexed by GitNexus as **PitchTwin-fuse** (218 symbols, 535 rela
 
 <!-- SPECKIT START -->
 For additional context about technologies to be used, project structure,
-shell commands, and other important information, read the current plan at:
-specs/004-dag-workflow-engine/plan.md
+shell commands, and other important information, read the current plan:
+`specs/004-dag-workflow-engine/plan.md` (feature 004 — DAG workflow engine:
+checkpointing, loop prevention, timeouts).
+`specs/004-agent-eval-framework/plan.md`
+`specs/005-ci-security-scanning/plan.md` (feature 005 — CI security scanning:
+Trivy + CodeQL + Dependabot).
 <!-- SPECKIT END -->

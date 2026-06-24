@@ -1,0 +1,58 @@
+{
+  "id": "edge_sparse",
+  "agent": "writer",
+  "description": "Sparse profile, minimal material to write from.",
+  "tags": [
+    "edge"
+  ],
+  "source": {
+    "structured_profile": {
+      "name": "Lee Park",
+      "skills": [
+        "Python"
+      ],
+      "experience": [],
+      "projects": [],
+      "certifications": []
+    },
+    "client_context": {
+      "company_name": "TinyCo",
+      "industry": "SaaS",
+      "required_skills": [
+        "Python"
+      ],
+      "tech_stack_mentioned": [
+        "Python"
+      ],
+      "tone": "casual"
+    }
+  },
+  "input": {
+    "relevance_map": {
+      "top_matches": [],
+      "secondary_matches": [],
+      "client_tone_match": "casual",
+      "headline_positioning": "Python generalist"
+    },
+    "structured_profile": {
+      "name": "Lee Park",
+      "skills": [
+        "Python"
+      ],
+      "experience": [],
+      "projects": [],
+      "certifications": []
+    },
+    "client_context": {
+      "company_name": "TinyCo",
+      "industry": "SaaS",
+      "required_skills": [
+        "Python"
+      ],
+      "tech_stack_mentioned": [
+        "Python"
+      ],
+      "tone": "casual"
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "agent": "debrief",
+  "captured_at": "2026-06-24T10:47:56.140838+00:00",
+  "cases": {
+    "concerns_conversation": {
+      "passed": true
+    },
+    "empty_transcript": {
+      "passed": true
+    },
+    "happy_conversation": {
+      "passed": true
+    },
+    "positive_conversation": {
+      "passed": true
+    },
+    "short_conversation": {
+      "passed": true
+    }
+  }
+}

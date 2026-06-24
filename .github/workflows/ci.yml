@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch: {}  # manual trigger for the live agent evals (needs LLM secret)
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: uv sync --frozen
+
+      - name: Lint
+        continue-on-error: true
+        run: uv run ruff check . --output-format=github
+
+      - name: Test
+        run: uv run python -m pytest tests/ -v
+        # Includes the offline eval meta-tests (tests/test_evals_meta.py) —
+        # the eval framework's gate logic is validated on every PR with no API key.
+
+  # Live agent evals against the real model. Manual-only (slow + needs a secret),
+  # so it never blocks PRs; run it on demand from the Actions tab.
+  evals-live:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install dependencies
+        run: uv sync --frozen
+      - name: Run agent evals (all agents)
+        env:
+          LLM_PROVIDER: litellm
+          LITELLM_API_KEY: ${{ secrets.LITELLM_API_KEY }}
+          LITELLM_BASE_URL: ${{ secrets.LITELLM_BASE_URL }}
+          LITELLM_MODEL: ${{ secrets.LITELLM_MODEL }}
+        run: uv run python -m evals.run --all --workers 6

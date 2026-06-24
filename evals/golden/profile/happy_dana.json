@@ -1,0 +1,14 @@
+{
+  "id": "happy_dana",
+  "agent": "profile",
+  "description": "Healthcare data CV.",
+  "tags": [
+    "happy"
+  ],
+  "source": {
+    "raw_profile": "Dana Levi \u2014 Data Consultant\nHealthcare data warehousing specialist. Built a HIPAA-compliant analytics warehouse for a hospital network using Snowflake and dbt. Skills: Snowflake, dbt, Python, HIPAA compliance, ETL."
+  },
+  "input": {
+    "raw_profile": "Dana Levi \u2014 Data Consultant\nHealthcare data warehousing specialist. Built a HIPAA-compliant analytics warehouse for a hospital network using Snowflake and dbt. Skills: Snowflake, dbt, Python, HIPAA compliance, ETL."
+  }
+}

@@ -15,7 +15,7 @@ hooks:
     description: Initialize Git repository before constitution setup
     condition: null
   - extension: team-ai-directives
-    command: team.constitution
+    command: adlc.team-ai-directives.constitution
     enabled: true
     optional: false
     prompt: Execute adlc.team-ai-directives.constitution?
@@ -31,7 +31,7 @@ hooks:
     description: Create feature branch before specification
     condition: null
   - extension: team-ai-directives
-    command: team.discover
+    command: adlc.team-ai-directives.discover
     enabled: true
     optional: false
     prompt: Execute adlc.team-ai-directives.discover?
@@ -54,7 +54,7 @@ hooks:
     description: Auto-commit before implementation planning
     condition: null
   - extension: team-ai-directives
-    command: team.discover
+    command: adlc.team-ai-directives.discover
     enabled: true
     optional: false
     prompt: Execute adlc.team-ai-directives.discover?
@@ -75,14 +75,6 @@ hooks:
     optional: true
     prompt: Commit outstanding changes before implementation?
     description: Auto-commit before implementation
-    condition: null
-  - extension: team-ai-directives
-    command: team.discover
-    enabled: true
-    optional: false
-    prompt: Execute adlc.team-ai-directives.discover?
-    description: Auto-discover team context before quick task execution (no-write
-      mode)
     condition: null
   before_checklist:
   - extension: git

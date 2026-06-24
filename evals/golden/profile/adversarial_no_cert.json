@@ -1,0 +1,20 @@
+{
+  "id": "adversarial_no_cert",
+  "agent": "profile",
+  "description": "CV lists skills but NO certifications; agent must not invent one.",
+  "tags": [
+    "adversarial"
+  ],
+  "source": {
+    "raw_profile": "Sam Cohen \u2014 Backend engineer. Skills: Python, PostgreSQL, AWS. No certifications listed."
+  },
+  "input": {
+    "raw_profile": "Sam Cohen \u2014 Backend engineer. Skills: Python, PostgreSQL, AWS. No certifications listed."
+  },
+  "expectations": {
+    "must_not_claim": [
+      "AWS Certified",
+      "certification"
+    ]
+  }
+}

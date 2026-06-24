@@ -1,0 +1,57 @@
+{
+  "id": "edge_sparse_profile",
+  "agent": "matching",
+  "description": "Minimal one-skill profile against a simple brief \u2014 should still produce a valid (possibly thin) relevance map.",
+  "tags": [
+    "edge"
+  ],
+  "source": {
+    "structured_profile": {
+      "name": "Lee Park",
+      "skills": [
+        "Python"
+      ],
+      "experience": [],
+      "projects": []
+    },
+    "client_context": {
+      "company_name": "TinyCo",
+      "industry": "SaaS",
+      "key_challenges": [
+        "Needs a Python script automation"
+      ],
+      "required_skills": [
+        "Python"
+      ],
+      "tech_stack_mentioned": [
+        "Python"
+      ],
+      "tone": "Casual"
+    }
+  },
+  "input": {
+    "structured_profile": {
+      "name": "Lee Park",
+      "skills": [
+        "Python"
+      ],
+      "experience": [],
+      "projects": []
+    },
+    "client_context": {
+      "company_name": "TinyCo",
+      "industry": "SaaS",
+      "key_challenges": [
+        "Needs a Python script automation"
+      ],
+      "required_skills": [
+        "Python"
+      ],
+      "tech_stack_mentioned": [
+        "Python"
+      ],
+      "tone": "Casual"
+    }
+  },
+  "expectations": {}
+}

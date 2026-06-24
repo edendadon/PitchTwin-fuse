@@ -37,17 +37,17 @@ Compile accepted CDRs into a **draft PR** to the team-ai-directives repository. 
 - ✅ `context_modules/rules/**/*.md` - Rule files (one per accepted Rule CDR)
 - ✅ `context_modules/personas/*.md` - Persona files (one per accepted Persona CDR)
 - ✅ `context_modules/examples/**/*.md` - Example files (one per accepted Example CDR)
-- ✅ `context_modules/constitution.md` - Create or amend (if Constitution CDR accepted)
+- ✅ `context_modules/constitution.md` - Append amendments (if Constitution CDR accepted)
 - ✅ `skills/*/` - Skill directories (if draft skills exist and not --skip-skills)
 - ✅ `CDR.md` - Index of accepted CDRs at ROOT (create LAST)
 
 **⚠️ CRITICAL**: You must create ALL of the above. Do NOT create CDR.md first and skip the actual module files.
 
-**Git Extension Integration**:
+**MCP Integration**:
 
-This command delegates Git operations to the git extension:
-- `git.commit --message` — Commit changes with explicit message
-- `git.publish` — Push branch and create PR (GitHub) or MR (GitLab)
+This command uses MCP tools for Git operations:
+- `create_pull_request` / `create_merge_request` (GitHub/GitLab)
+- If MCP unavailable, provides manual instructions
 
 ## Role & Context
 
@@ -327,7 +327,7 @@ cd "$TEAM_DIRECTIVES"
 
 if [ ! -f "AGENTS.md" ]; then
   echo "Creating AGENTS.md from template..."
-  cp ".specify/extensions/team-ai-directives/templates/agents-template.md" "AGENTS.md"
+  cp ".specify/extensions/levelup/templates/agents-template.md" "AGENTS.md"
   echo "✅ AGENTS.md created"
 else
   echo "✅ AGENTS.md already exists"
@@ -341,11 +341,6 @@ fi
 For each CDR that passed signal gate, create/update the target file with YAML frontmatter and verification metadata.
 
 **Metadata Variables**:
-- `{type}`: OKF concept type (Rule, Persona, Example, Skill, Constitution)
-- `{title}`: Human-readable display name
-- `{description}`: One-line summary
-- `{tags}`: YAML list of categorization tags
-- `{timestamp}`: ISO 8601 datetime (YYYY-MM-DDTHH:MM:SSZ)
 - `{id}`: Unique identifier (e.g., `rule-python-error-handling`)
 - `{cdr_ref}`: Original CDR ID (e.g., `CDR-2026-001`)
 - `{created}`: Evidence date (YYYY-MM-DD)
@@ -358,11 +353,6 @@ For each CDR that passed signal gate, create/update the target file with YAML fr
 **Rules** (`context_modules/rules/{domain}/{file}.md`):
 ```markdown
 ---
-type: Rule
-title: {title}
-description: {description}
-tags: {tags}
-timestamp: {timestamp}
 id: {id}
 cdr_ref: {cdr_ref}
 created: {created}
@@ -406,11 +396,6 @@ Date: {modified}
 **Personas** (`context_modules/personas/{file}.md`):
 ```markdown
 ---
-type: Persona
-title: {title}
-description: {description}
-tags: {tags}
-timestamp: {timestamp}
 id: {id}
 cdr_ref: {cdr_ref}
 created: {created}
@@ -441,11 +426,6 @@ Date: {modified}
 **Examples** (`context_modules/examples/{category}/{file}.md`):
 ```markdown
 ---
-type: Example
-title: {title}
-description: {description}
-tags: {tags}
-timestamp: {timestamp}
 id: {id}
 cdr_ref: {cdr_ref}
 created: {created}
@@ -472,64 +452,7 @@ CDR: {cdr_ref}
 Date: {modified}
 ```
 
-**Constitution** (`context_modules/constitution.md`):
-
-**For Constitution Creation CDRs** (constitution does not exist):
-
-Create new constitution file:
-```markdown
----
-type: Constitution
-title: {title}
-description: {description}
-tags: {tags}
-timestamp: {timestamp}
-id: {id}
-cdr_ref: {cdr_ref}
-created: {created}
-modified: {modified}
-verified: {verified}
-age_days: {age_days}
-evidence:
-  principles:
-    - name: {principle_1_name}
-      source: {pattern_source}
-      evidence: {file_paths}
----
-
-> ⚠️ **Memory Verification**
-> This constitution is {age_days} days old. Verify before applying:
-> - [ ] Principles still align with team values
-> - [ ] Evidence still valid in current codebase
-> - [ ] No conflicting principles introduced
-
-# Team Constitution
-
-{Content from CDR proposed content - full constitution}
-
-## Governance
-
-This constitution was generated from codebase analysis via /levelup.init.
-Amendments require team review and approval.
-
-**Version**: 1.0.0 | **Ratified**: {created} | **Last Amended**: {modified}
-
-## Source
-
-Contributed from: {project-name}
-CDR: {cdr_ref}
-Date: {modified}
-
-## Verification Log
-
-| Date | Verified By | Notes |
-|------|-------------|-------|
-| {verified} | {project-name} | Initial constitution via /levelup.implement |
-```
-
-**For Constitution Amendment CDRs** (constitution exists):
-
-Append to existing constitution:
+**Constitution Amendments** (append to `context_modules/constitution.md`):
 ```markdown
 
 ## {Amendment Title}
@@ -542,23 +465,7 @@ Append to existing constitution:
 {Content from CDR proposed content}
 
 <!-- CDR: {cdr_ref}, Date: {modified}, ID: {id} -->
-
-**Version**: {incremented_version} | **Last Amended**: {modified}
 ```
-
-**Constitution Update Process**:
-
-1. Check if `{TEAM_DIRECTIVES}/context_modules/constitution.md` exists
-2. For **Constitution Creation** CDRs:
-   - Create new file from CDR proposed content
-   - Set initial version to 1.0.0
-   - Set ratification date to today
-3. For **Constitution Amendment** CDRs:
-   - Read existing constitution
-   - Append new section (preserve existing content)
-   - Increment version according to CDR strategy
-   - Update "Last Amended" date
-4. Add verification metadata and CDR reference
 
 #### ⚠️ Step 4: VERIFY Context Modules Created
 
@@ -567,17 +474,12 @@ Append to existing constitution:
 Run this command and report the count:
 ```bash
 cd "$TEAM_DIRECTIVES"
-echo "Constitution: $(test -f context_modules/constitution.md && echo '1' || echo '0')"
 echo "Rules: $(find context_modules/rules -name '*.md' 2>/dev/null | wc -l)"
 echo "Personas: $(find context_modules/personas -name '*.md' 2>/dev/null | wc -l)"  
 echo "Examples: $(find context_modules/examples -name '*.md' 2>/dev/null | wc -l)"
 ```
 
 **If any count is 0 but you have accepted CDRs for that type, you MUST go back and create the files.**
-
-**Special cases**:
-- **Constitution**: If Constitution CDR is accepted, verify file exists (count should be 1)
-- **Inconsistency CDRs**: These don't create files directly; they inform other CDRs
 
 #### Step 5: Process Draft Skills
 
@@ -630,9 +532,9 @@ Context Directive Records tracking approved contributions to team-ai-directives.
 
 ## CDR Index
 
-| ID | Target Module | Type | Status | Created | Verified | Age | Descriptor |
-|----|---------------|------|--------|---------|----------|-----|------------|
-| CDR-001 | context_modules/rules/python/error-handling.md | Rule | Accepted | 2026-04-15 | 2026-05-18 | 33d | Python error handling patterns and best practices |
+| ID | Target Module | Type | Status | Created | Verified | Age |
+|----|---------------|------|--------|---------|----------|-----|
+| CDR-001 | context_modules/rules/python/error-handling.md | Rule | Accepted | 2026-04-15 | 2026-05-18 | 33d |
 
 **Stats**: {N} CDRs | Last Updated: {date}
 
@@ -661,11 +563,7 @@ Context Directive Records tracking approved contributions to team-ai-directives.
 
 ### Context Type
 
-Rule | Persona | Example | Constitution Creation | Constitution Amendment
-
-### Descriptor
-
-One-line "when to use" summary. This becomes the search surface in the CDR Index table for the `adlc.team-ai-directives.discover` command. Derive from the `### Context` and `### Decision` sections — e.g., "SQL injection prevention patterns for all languages" or "Java Google style guide conventions for new projects".
+Rule | Persona | Example | Constitution Amendment
 
 ### Signal Gate
 
@@ -714,65 +612,18 @@ git status --porcelain
 
 **If any check fails, you MUST go back and create the missing files before proceeding.**
 
-### Phase 4: Record Execution Trace
+### Phase 4: Commit Changes
 
-**Objective**: Preserve execution trace for curation agent consumption
+**Objective**: Stage and commit all changes
 
-Copy the execution log as a trace file to `{REPO_ROOT}/traces/`:
-
-```bash
-mkdir -p "{REPO_ROOT}/traces"
-TRACE_FILE="{REPO_ROOT}/traces/$(date -u +%Y%m%d-%H%M%S)-${PROJECT_NAME}-levelup-implement.md"
-```
-
-Write the trace content:
-
-```markdown
-# LevelUp Implement Trace
-
-**Timestamp**: {timestamp}
-**Project**: {project-name}
-**Branch**: {BRANCH_NAME}
-**Team Directives**: {TEAM_DIRECTIVES}
-
-## Summary
-
-- **CDRs Implemented**: {N}
-- **CDRs Skipped (Signal Gate)**: {M}
-- **Skills Published**: {S}
-- **Target Branch**: {BRANCH_NAME} → main
-
-## CDRs Implemented
-
-| CDR | Type | Target Module |
-|-----|------|---------------|
-| CDR-{N} | {type} | {module} |
-
-## Evidence
-
-- Project: {project-repo-url}
-- Implementation branch: {BRANCH_NAME}
-```
-
-After writing, optionally stage it:
+#### Step 1: Stage Files
 
 ```bash
-cd "{REPO_ROOT}"
-git add traces/
+cd "$TEAM_DIRECTIVES"
+git add context_modules/ skills/ .skills.json CDR.md AGENTS.md
 ```
 
-### Phase 5: Commit and Publish
-
-**Objective**: Commit changes in team-ai-directives and create PR/MR using git extension commands
-
-#### Step 1: Commit with `git.commit --message`
-
-Use the git extension command with an explicit message:
-
-- **slash command**: `git.commit --message "Add context modules from {project-name}"`
-- **hook equivalent**: `.specify/extensions/git/scripts/bash/auto-commit.sh --message "Add context modules from {project-name}" after_implement`
-
-Generate the commit message:
+#### Step 2: Generate Commit Message
 
 ```
 Add context modules from {project-name}
@@ -787,19 +638,23 @@ Skills added:
 Source: {project-repo-url}
 ```
 
-#### Step 2: Publish with `git.publish`
+#### Step 3: Commit
 
-Use the git extension command to push and create PR/MR:
+```bash
+git commit -m "{commit-message}"
+```
 
-- **slash command**: `git.publish --title "Add context modules from {project-name}" [--draft]`
-- **script equivalent**: `.specify/extensions/git/scripts/bash/publish.sh --title "Add context modules from {project-name}" [--draft]`
+### Phase 4: Push and Create PR
 
-The command accepts:
-- `--draft` — Create as draft PR (default unless `--ready` flag)
-- `--title "..."` — PR title (generated from branch name if absent)
-- `--body "..."` — PR description
+**Objective**: Push branch and create PR
 
-**PR Body Template**:
+#### Step 1: Push Branch
+
+```bash
+git push -u origin "$BRANCH_NAME"
+```
+
+#### Step 2: Generate PR Description
 
 ```markdown
 ## Summary
@@ -842,14 +697,37 @@ These contributions were discovered and validated through:
 - Branch: {branch-name}
 ```
 
-#### Step 3: Stage Trace File (in source repo)
+#### Step 3: Create PR via MCP
 
-```bash
-cd "{REPO_ROOT}"
-git add traces/
+Use MCP tools if available:
+
+```
+Tool: create_pull_request (GitHub) or create_merge_request (GitLab)
+Parameters:
+  - title: "Add context modules from {project-name}"
+  - body: {PR description}
+  - source_branch: "{BRANCH_NAME}"
+  - target_branch: "main"
+  - draft: true (unless --ready flag)
 ```
 
-### Phase 6: Summary
+If MCP unavailable, provide manual instructions:
+
+```markdown
+### Manual PR Creation
+
+MCP tools not available. Create PR manually:
+
+1. Go to: {team-ai-directives repo URL}
+2. Create PR from branch: `{BRANCH_NAME}`
+3. Target: `main`
+4. Title: "Add context modules from {project-name}"
+5. Body: {copy PR description above}
+```
+
+### Phase 5: Summary
+
+**Objective**: Present implementation results
 
 **Objective**: Present implementation results
 
@@ -866,9 +744,9 @@ git add traces/
 |-----------|--------|
 | Branch created | `{BRANCH_NAME}` |
 | Files changed | {N} |
-| Commit | via `git.commit --message` |
-| Push + PR | via `git.publish` |
-| Trace | `traces/{trace-file}` |
+| Commit | `{commit-sha}` |
+| Push | Success |
+| PR | {PR-URL or "Manual instructions provided"} |
 
 ### CDRs Implemented
 
@@ -907,7 +785,7 @@ git add traces/
    ```
 ```
 
-### Phase 7: Cleanup (when NOT configured)
+### Phase 6: Cleanup (when NOT configured)
 
 **When team-ai-directives is NOT configured:**
 
@@ -967,4 +845,4 @@ Run `/levelup.validate` to update verification timestamps and check directive fr
 - `/levelup.init` - Discover CDRs from codebase
 - `/levelup.clarify` - Accept CDRs for implementation
 - `/levelup.specify` - Enrich CDRs with feature context
-- `/levelup.skill` - Build one skill from accepted CDRs
+- `/levelup.skills` - Build skills from CDRs

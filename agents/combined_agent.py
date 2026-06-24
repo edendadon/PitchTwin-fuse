@@ -5,6 +5,9 @@ Used for speed optimization: replaces 3 sequential/parallel calls with 1.
 
 import json
 
+from agents.harness import AgentHarness
+from agents.schemas import CombinedOutput
+
 SYSTEM_PROMPT = """You are a senior proposal specialist for a technology consulting firm.
 
 You will receive:
@@ -77,11 +80,12 @@ def run_combined_agent(structured_profile: dict, client_context: dict, llm_clien
 
     Returns dict with keys: relevance_map, tailored_cv, bio, talking_points, gap_analysis
     """
-    print("[Combined Agent] Running (matching + writing + gap in one call)...")
+    harness = AgentHarness(
+        llm_client, name="combined", system_prompt=SYSTEM_PROMPT,
+        output_schema=CombinedOutput,
+    )
     user_message = json.dumps({
         "consultant_profile": structured_profile,
-        "client_context": client_context
+        "client_context": client_context,
     })
-    result = llm_client.call_json(SYSTEM_PROMPT, user_message)
-    print("[Combined Agent] Done.")
-    return result
+    return harness.run(user_message)

@@ -1,0 +1,141 @@
+{
+  "id": "missing_skills",
+  "agent": "gap",
+  "description": "Client needs skills the profile lacks: honest gaps expected.",
+  "tags": [
+    "adversarial"
+  ],
+  "source": {
+    "client_context": {
+      "company_name": "EnterpriseX",
+      "industry": "ERP",
+      "required_skills": [
+        "SAP",
+        "Salesforce",
+        "ABAP"
+      ],
+      "nice_to_have_skills": [],
+      "tech_stack_mentioned": [
+        "SAP"
+      ],
+      "tone": "formal"
+    },
+    "structured_profile": {
+      "name": "Alex Rivera",
+      "title": "Senior Technology Consultant",
+      "summary": "Senior consultant; AWS cloud migration and microservices for financial services.",
+      "skills": [
+        "AWS",
+        "Microservices",
+        "Python",
+        "Kafka",
+        "Terraform"
+      ],
+      "experience": [
+        {
+          "company": "Tikal Tech",
+          "role": "Senior Consultant",
+          "duration": "2020-Present",
+          "description": "Led AWS cloud migration for a Tier-1 bank.",
+          "technologies": [
+            "AWS",
+            "Microservices"
+          ],
+          "achievements": [
+            "Cut infrastructure cost 35%"
+          ]
+        }
+      ],
+      "projects": [
+        {
+          "name": "Bank CloudShift",
+          "description": "Full cloud migration to AWS",
+          "technologies": [
+            "AWS"
+          ]
+        }
+      ],
+      "education": [
+        {
+          "degree": "B.Sc. CS",
+          "institution": "Tel Aviv University",
+          "year": "2015"
+        }
+      ],
+      "certifications": [
+        "AWS Solutions Architect - Professional"
+      ],
+      "tone_markers": "Direct and pragmatic; uses concrete metrics."
+    }
+  },
+  "input": {
+    "client_context": {
+      "company_name": "EnterpriseX",
+      "industry": "ERP",
+      "required_skills": [
+        "SAP",
+        "Salesforce",
+        "ABAP"
+      ],
+      "nice_to_have_skills": [],
+      "tech_stack_mentioned": [
+        "SAP"
+      ],
+      "tone": "formal"
+    },
+    "structured_profile": {
+      "name": "Alex Rivera",
+      "title": "Senior Technology Consultant",
+      "summary": "Senior consultant; AWS cloud migration and microservices for financial services.",
+      "skills": [
+        "AWS",
+        "Microservices",
+        "Python",
+        "Kafka",
+        "Terraform"
+      ],
+      "experience": [
+        {
+          "company": "Tikal Tech",
+          "role": "Senior Consultant",
+          "duration": "2020-Present",
+          "description": "Led AWS cloud migration for a Tier-1 bank.",
+          "technologies": [
+            "AWS",
+            "Microservices"
+          ],
+          "achievements": [
+            "Cut infrastructure cost 35%"
+          ]
+        }
+      ],
+      "projects": [
+        {
+          "name": "Bank CloudShift",
+          "description": "Full cloud migration to AWS",
+          "technologies": [
+            "AWS"
+          ]
+        }
+      ],
+      "education": [
+        {
+          "degree": "B.Sc. CS",
+          "institution": "Tel Aviv University",
+          "year": "2015"
+        }
+      ],
+      "certifications": [
+        "AWS Solutions Architect - Professional"
+      ],
+      "tone_markers": "Direct and pragmatic; uses concrete metrics."
+    }
+  },
+  "expectations": {
+    "must_not_claim": [
+      "SAP",
+      "Salesforce",
+      "ABAP"
+    ]
+  }
+}

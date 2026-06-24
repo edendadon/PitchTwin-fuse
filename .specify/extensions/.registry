@@ -54,9 +54,9 @@
       "installed_at": "2026-06-23T22:05:19.219882+00:00"
     },
     "levelup": {
-      "version": "1.10.0",
+      "version": "1.6.1",
       "source": "local",
-      "manifest_hash": "sha256:deeb3680ddf8a15c1bfc64cbd6532942064e20222e87114503c04dde8417b2d6",
+      "manifest_hash": "sha256:e5d0e740ee26a3eb72822fcc260b945a5c564a78936e0722e827ab5597447d4d",
       "enabled": true,
       "priority": 10,
       "registered_commands": {
@@ -64,26 +64,31 @@
           "levelup.init",
           "levelup.clarify",
           "levelup.specify",
-          "levelup.skill",
+          "levelup.skills",
           "levelup.implement",
-          "levelup.validate"
+          "levelup.trace",
+          "levelup.validate",
+          "levelup.repair"
         ],
         "opencode": [
           "levelup.init",
           "levelup.clarify",
           "levelup.specify",
-          "levelup.skill",
+          "levelup.skills",
           "levelup.implement",
-          "levelup.validate"
+          "levelup.trace",
+          "levelup.validate",
+          "levelup.repair"
         ]
       },
       "registered_skills": [],
       "installed_at": "2026-06-23T22:05:19.566735+00:00"
     },
     "team-ai-directives": {
-      "version": "3.2.0",
-      "source": "local",
-      "manifest_hash": "sha256:148f8a63d64a28556a4bd968bba81db3e94c5707c85330f8b00ea43b932b8ff2",
+      "version": "1.7.2",
+      "source": "reference",
+      "path": "/Users/dannykreda/projects/gitlab.com/roadmap/agentic-sdlc-team-ai-directives",
+      "manifest_hash": "sha256:91e6123b991b4b43d623daf58b2dd2ff9d5b19b5a075f5acd017813ec56c4b5f",
       "enabled": true,
       "priority": 1,
       "registered_commands": {
@@ -91,23 +96,17 @@
           "team.verify",
           "team.discover",
           "team.constitution",
-          "team.skills",
-          "team.repair",
-          "team.init",
-          "team.evolve"
+          "team.release"
         ],
         "opencode": [
           "team.verify",
           "team.discover",
           "team.constitution",
-          "team.skills",
-          "team.repair",
-          "team.init",
-          "team.evolve"
+          "team.release"
         ]
       },
       "registered_skills": [],
-      "installed_at": "2026-06-24T07:45:58.178208+00:00"
+      "installed_at": "2026-06-24T09:16:09.728584+00:00"
     }
   }
 }

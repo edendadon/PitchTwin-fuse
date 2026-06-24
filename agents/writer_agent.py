@@ -8,6 +8,9 @@ Runs sequentially after Matching Agent.
 
 import json
 
+from agents.harness import AgentHarness
+from agents.schemas import WriterOutput
+
 SYSTEM_PROMPT = """You are an expert proposal writer for technology consulting firms.
 
 You will receive:
@@ -36,6 +39,18 @@ Rules:
 - The tailored CV should reorder and reframe — not fabricate.
 - Talking points should be ready to say out loud, not bullet headers.
 - Write the bio in the consultant's voice/style as indicated by tone_markers.
+
+GROUNDING (hard rule — no fabrication):
+- NEVER invent numbers or metrics. Do not write uptime figures, transaction
+  volumes, system counts, percentages, durations, or team sizes unless that
+  exact figure appears in the profile. No "99.99% uptime", "millions of
+  transactions", "50+ systems" unless the profile states it.
+- NEVER attribute to the consultant a skill, technology, employer, client,
+  project, or certification that is not in the profile. The client's required
+  skills/tech are the CLIENT's — do not restate them as the consultant's
+  experience. If the profile lacks something the client wants, omit it.
+- Reframe and emphasize real profile facts; when the profile is sparse, write a
+  shorter, honest CV/bio rather than padding it with invented capabilities.
 """
 
 
@@ -52,12 +67,13 @@ def run_writer_agent(relevance_map: dict, structured_profile: dict, client_conte
     Returns:
         Dict with tailored_cv, bio, talking_points
     """
-    print("[Writer Agent] Running...")
+    harness = AgentHarness(
+        llm_client, name="writer", system_prompt=SYSTEM_PROMPT,
+        output_schema=WriterOutput,
+    )
     user_message = json.dumps({
         "relevance_map": relevance_map,
         "consultant_profile": structured_profile,
-        "client_context": client_context
+        "client_context": client_context,
     })
-    result = llm_client.call_json(SYSTEM_PROMPT, user_message)
-    print("[Writer Agent] Done.")
-    return result
+    return harness.run(user_message)

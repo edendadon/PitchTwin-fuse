@@ -8,6 +8,8 @@ import time
 import json
 from dotenv import load_dotenv
 
+import logfire
+
 load_dotenv()
 
 LLM_PROVIDER = os.getenv("LLM_PROVIDER", "litellm")
@@ -26,9 +28,14 @@ class LLMClient:
     def _init_client(self):
         if self.provider == "gemini":
             import google.genai as genai
+            # Required for prompts/completions to be captured in spans.
+            os.environ.setdefault("OTEL_INSTRUMENTATION_GENAI_CAPTURE_MESSAGE_CONTENT", "true")
             self._gemini_client = genai.Client(api_key=GEMINI_API_KEY)
+            logfire.instrument_google_genai()
         elif self.provider == "groq":
             from groq import Groq
+            # Groq has no dedicated Logfire integration; calls are wrapped in
+            # a manual span in _call_groq instead.
             self._groq_client = Groq(api_key=GROQ_API_KEY)
         elif self.provider == "litellm":
             from openai import OpenAI
@@ -36,6 +43,9 @@ class LLMClient:
                 api_key=LITELLM_API_KEY,
                 base_url=LITELLM_BASE_URL
             )
+            # litellm proxy speaks the OpenAI protocol, so the OpenAI
+            # instrumentation captures these calls.
+            logfire.instrument_openai(self._litellm_client)
 
     def call(self, system_prompt: str, user_message: str, retries: int = 3) -> str:
         """
@@ -73,13 +83,15 @@ class LLMClient:
         return response.text
 
     def _call_groq(self, system_prompt: str, user_message: str) -> str:
-        response = self._groq_client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_message},
-            ],
-        )
+        model = "llama-3.3-70b-versatile"
+        with logfire.span("groq chat completion", model=model):
+            response = self._groq_client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_message},
+                ],
+            )
         return response.choices[0].message.content
 
     def _call_litellm(self, system_prompt: str, user_message: str) -> str:
@@ -91,6 +103,69 @@ class LLMClient:
             ],
         )
         return response.choices[0].message.content
+
+    def call_stream(self, system_prompt: str, user_message: str):
+        """
+        Stream LLM response as token chunks.
+        Yields string tokens as they arrive from the provider.
+        Falls back to yielding the full response as a single chunk on error.
+        No retries — streaming is best-effort.
+        """
+        try:
+            if self.provider == "gemini":
+                yield from self._stream_gemini(system_prompt, user_message)
+            elif self.provider == "groq":
+                yield from self._stream_groq(system_prompt, user_message)
+            elif self.provider == "litellm":
+                yield from self._stream_litellm(system_prompt, user_message)
+            else:
+                raise ValueError(f"Unknown provider: {self.provider}")
+        except Exception as e:
+            print(f"[LLMClient] Streaming failed, falling back to non-streaming: {e}")
+            # Fallback: yield the full response as a single chunk
+            yield self.call(system_prompt, user_message)
+
+    def _stream_gemini(self, system_prompt: str, user_message: str):
+        import google.genai.types as types
+        for chunk in self._gemini_client.models.generate_content_stream(
+            model="gemini-2.0-flash",
+            contents=user_message,
+            config=types.GenerateContentConfig(
+                system_instruction=system_prompt,
+            ),
+        ):
+            if chunk.text:
+                yield chunk.text
+
+    def _stream_groq(self, system_prompt: str, user_message: str):
+        model = "llama-3.3-70b-versatile"
+        with logfire.span("groq chat completion stream", model=model):
+            stream = self._groq_client.chat.completions.create(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_message},
+                ],
+                stream=True,
+            )
+            for chunk in stream:
+                token = chunk.choices[0].delta.content
+                if token is not None:
+                    yield token
+
+    def _stream_litellm(self, system_prompt: str, user_message: str):
+        stream = self._litellm_client.chat.completions.create(
+            model=LITELLM_MODEL,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message},
+            ],
+            stream=True,
+        )
+        for chunk in stream:
+            token = chunk.choices[0].delta.content
+            if token is not None:
+                yield token
 
     def call_json(self, system_prompt: str, user_message: str) -> dict:
         """

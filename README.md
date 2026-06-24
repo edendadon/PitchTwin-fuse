@@ -17,13 +17,24 @@ Open http://localhost:5000
 
 ---
 
-## Quick Start (Local)
+## Quick Start (Local with uv)
 
 ```bash
-pip install -r requirements.txt
+# Install uv if not already installed: https://docs.astral.sh/uv/getting-started/installation/
+uv sync
 cp .env.example .env
 # Edit .env with your API key
-python app.py
+uv run python app.py
+```
+
+Or install uv and run in one command:
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+uv sync
+cp .env.example .env
+# Edit .env with your API key
+uv run python app.py
 ```
 
 ---
@@ -44,14 +55,18 @@ python app.py
 
 ## Architecture
 
-```
-Profile Agent ──┐
-                ├─ (parallel) ─► Matching Agent ─► Writer Agent ─► Proposal Package
-Client Research ┘                               └─► Gap Agent ──┘
+PitchTwin runs **5 agents across 4 phases**, with two error-recovery layers
+(provider retry + backoff, and schema-validate / re-prompt / graceful
+degradation). Full breakdown — including the non-happy (error-recovery) path and
+a node→source map — in **[docs/architecture-diagrams.md](docs/architecture-diagrams.md)**.
 
-Persona Agent ─► Interactive twin (one call per client message)
-Debrief Agent ─► Fires on session end → report for consultant
-```
+### Happy path — agents & where they interact
+
+![PitchTwin happy-path agent pipeline](docs/diagrams/happy-path.png)
+
+### Non-happy path — error recovery
+
+![PitchTwin error-recovery flow](docs/diagrams/non-happy-path.png)
 
 See `spec/spec.arch` for the full blueprint.
 
@@ -73,10 +88,31 @@ See `spec/spec.arch` for the full blueprint.
 ## Running Tests
 
 ```bash
-python tests/test_agents.py
+uv run python -m pytest tests/ -v
+```
+
+Or with pytest directly:
+
+```bash
+uv run pytest tests/ -v
 ```
 
 Tests use a mock LLM client — no API calls required.
+
+---
+
+## Agent Evals
+
+The 7 agents are quality-gated by a golden-set eval framework (schema, factual
+consistency, and an LLM-judge hallucination gate). See **[`evals/README.md`](evals/README.md)**.
+
+```bash
+python -m evals.run --agent matching      # one agent
+python -m evals.run --all --workers 6      # all agents, in parallel
+```
+
+The offline eval meta-tests run as part of `pytest tests/` (and CI); the live
+`evals.run` invokes the real model.
 
 ---
 
@@ -89,6 +125,8 @@ pitchtwin/
 ├── llm_client.py        # Gemini/Groq wrapper
 ├── db.py                # SQLite layer
 ├── models.py            # Dataclasses
+├── pyproject.toml       # Project config + dependencies (uv)
+├── uv.lock              # Locked dependency versions
 ├── agents/              # 7 specialized agents
 ├── templates/           # Flask Jinja2 templates
 ├── static/css/          # Minimal CSS

@@ -1,0 +1,23 @@
+{
+  "id": "adversarial_no_tech",
+  "agent": "client_research",
+  "description": "Brief states business goals but NO technologies; agent must not invent a tech stack.",
+  "tags": [
+    "adversarial"
+  ],
+  "source": {
+    "client_brief": "We want to grow revenue and improve customer retention this year.",
+    "company_name": "GrowthCo"
+  },
+  "input": {
+    "client_brief": "We want to grow revenue and improve customer retention this year.",
+    "company_name": "GrowthCo"
+  },
+  "expectations": {
+    "must_not_claim": [
+      "AWS",
+      "Kubernetes",
+      "specific technology stack"
+    ]
+  }
+}

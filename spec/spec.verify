@@ -1,0 +1,65 @@
+# Verification Report: Agent Harness (issue #1)
+
+Branch: `004-agent-harness` (base `main`) · Scope: PHASE 2.5 of `spec.tasks`
+
+## Test Gate
+- **Result**: ✅ PASS
+- **Details**: `python -m pytest tests/` → **13 passed** (8 existing agent tests as regression + 5 new harness tests). Run with the repo `.venv` (pytest 9.1.1, pydantic 2.13.4).
+
+## Diff Summary
+- **Files changed**: 15 (vs `main`, working tree — nothing committed yet)
+- **Categories**:
+  - Implementation: `agents/harness.py` (new), `agents/schemas.py` (new), 8 agent files modified
+  - Tests: `tests/test_harness.py` (new)
+  - Spec/docs: `spec/spec.plan`, `spec/spec.arch`, `spec/spec.tasks` (modified), `spec/spec.harness-brainstorm.md` (new)
+
+## 4-Pillar Assessment
+
+### Pillar 1: Spec Compliance — Score: 82/100
+**Evidence**: All three issue #1 acceptance criteria are met against the **approved Option A design** (thin harness; see `spec.harness-brainstorm.md`):
+- ✅ Profile + Client Research run via the harness, produce validated output, trace to console — `agents/profile_agent.py`, `agents/client_research_agent.py`; `tests/test_harness.py::test_profile_and_client_research_run_via_harness`; trace demonstrated.
+- ✅ Unit test: no-hallucination guardrail catches a fabricated skill — `tests/test_harness.py::test_no_hallucination_guardrail_flags_fabricated_skill`.
+- ✅ No breaking changes to the orchestrator interface — signatures of `run_proposal_pipeline` / `handle_twin_message` unchanged; all modules import without cycles.
+- ✅ Bonus: all 8 agents migrated, not just the two.
+
+**Accepted deviations** (Option A chosen over the issue's original deliverables; confirmed with the user):
+- ⚠️ No `agents/base.py` / `agents/context.py` / `agents/guardrails.py` / `AgentContext` / tool registry — folded into one `AgentHarness` by design.
+
+**Constitution gaps within harness scope** (`.specify/memory/constitution.md`):
+- ⚠️ Principle II "validation at every boundary" — **output** validation done; **input** validation deferred (T-252).
+- ⚠️ Principle IV "fabrication is a hard failure" — guardrail currently **warns** and is available via `ground_against`; it is not yet a hard failure wired into the live persona/writer path.
+- ⚠️ Principle I — bounded retries ✅; explicit timeouts / circuit breakers ❌ (belong to later issues).
+
+### Pillar 2: Code Quality — Score: 88/100
+**Strengths**: `AgentHarness` is small, documented, and gives one calling convention. Migration is behaviour-preserving (harness returns the original parsed dict, not `model_dump()`), so no field is added/dropped. Schemas are lenient (one required field, extras ignored) → robust to LLM variance. Consistent naming/structure across all 8 agents.
+**Issues**: Harness is constructed per call (negligible cost, but could be cached). Guardrail is implemented + tested but not invoked in the live pipeline path. `ValueError` is caught broadly in the JSON retry loop (intentional, but slightly wide).
+
+### Pillar 3: Test Adequacy — Score: 82/100
+**Coverage**: Guardrail (positive + negative), output-validation retry, no-retry happy path, text mode, and profile/client-research-via-harness. The other 6 agents now run **through** the harness and are exercised by the 8 existing agent tests (regression-green).
+**Gaps**: No direct test of the lenient "never-valid → warn + return best-effort" branch; no test of `combined`/`gap`/`matching`/`writer`/`debrief` validation specifically; no real-LLM integration test (mocks only); input validation untested (deferred).
+
+### Pillar 4: Risk & Evidence — Score: 80/100
+**Evidence quality**: Strong — pytest output, byte-compile, import/cycle check, signature check, and a live console-trace + guardrail demo.
+**Risks**:
+- Output schemas could reject some real-LLM responses → mitigated by retry-with-feedback and a lenient final fallback (won't crash the demo).
+- Guardrail is advisory, not enforcing (see Pillar 1 / constitution IV).
+- This branch now merges current `main`, which has since absorbed #13's pydantic-ai refactor + logfire. The harness ports `matching`/`writer` off `pydantic_ai` and removes the dependency (`pyproject.toml` + `agents/pydantic_ai_setup.py`); tracing stays console-based while the merged `llm_client`/orchestrator keep their own logfire instrumentation. Conflicts resolved; full suite green post-merge.
+
+## Overall Verdict
+
+| Pillar | Score | Status |
+|--------|-------|--------|
+| Spec Compliance | 82 | ✅ PASS |
+| Code Quality | 88 | ✅ PASS |
+| Test Adequacy | 82 | ✅ PASS |
+| Risk & Evidence | 80 | ✅ PASS |
+
+**Overall**: ✅ VERIFIED for issue #1 scope (threshold: all pillars ≥ 70).
+
+## Recommended Actions (follow-ups, not blockers for #1)
+1. Add optional input-schema validation in the harness (T-252) to satisfy constitution II fully.
+2. Offer a `strict` mode so the no-hallucination guardrail can be a hard failure (constitution IV), and wire it into the persona/writer live path via `ground_against`.
+3. Add explicit per-agent timeouts + circuit breaker (constitution I) — overlaps issue #2.
+4. Add evals / golden-set gate (constitution V) — issue #4.
+5. Structured observability (trace_id, tokens, cost, SQLite checkpoints, `/debug/trace/<id>`) — issue #6 / logfire branch.
+6. Add tests for the lenient-failure branch and remaining agents' schema validation.

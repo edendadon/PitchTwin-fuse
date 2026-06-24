@@ -1,0 +1,14 @@
+{
+  "id": "variation_pm",
+  "agent": "profile",
+  "description": "Non-technical product-manager CV.",
+  "tags": [
+    "happy"
+  ],
+  "source": {
+    "raw_profile": "Jordan Park \u2014 Product Manager\n6 years leading B2B SaaS products. Shipped a billing platform, ran discovery with 40+ customers. Skills: roadmapping, stakeholder management, SQL, A/B testing."
+  },
+  "input": {
+    "raw_profile": "Jordan Park \u2014 Product Manager\n6 years leading B2B SaaS products. Shipped a billing platform, ran discovery with 40+ customers. Skills: roadmapping, stakeholder management, SQL, A/B testing."
+  }
+}

@@ -11,6 +11,8 @@ import uuid
 import json
 from datetime import datetime
 
+import logfire
+
 import db
 from models import Proposal, TwinSession
 from llm_client import LLMClient
@@ -92,38 +94,45 @@ def run_proposal_pipeline(consultant_id: str, client_brief: str, company_name: s
 
     print(f"\n[Orchestrator] Starting pipeline for {profile.name} → {company_name}")
 
-    checkpoint_store = MemoryStore()
-    trace_store = MemoryStore()
+    with logfire.span(
+        "proposal pipeline",
+        consultant_id=consultant_id,
+        consultant_name=profile.name,
+        company_name=company_name,
+    ):
+        checkpoint_store = MemoryStore()
+        trace_store = MemoryStore()
 
-    dag = _build_proposal_dag(consultant_id, client_brief, company_name, llm)
+        dag = _build_proposal_dag(consultant_id, client_brief, company_name, llm)
 
-    engine = WorkflowEngine(
-        dag=dag,
-        checkpoint_store=checkpoint_store,
-        trace_store=trace_store,
-        global_timeout_sec=240,
-        circuit_breaker_threshold=3,
-    )
+        engine = WorkflowEngine(
+            dag=dag,
+            checkpoint_store=checkpoint_store,
+            trace_store=trace_store,
+            global_timeout_sec=240,
+            circuit_breaker_threshold=3,
+        )
 
-    context = {
-        "consultant_id": consultant_id,
-        "client_brief": client_brief,
-        "company_name": company_name,
-    }
+        context = {
+            "consultant_id": consultant_id,
+            "client_brief": client_brief,
+            "company_name": company_name,
+        }
 
-    try:
-        result = engine.execute(proposal_id=consultant_id, context=context)
-    except (CircuitBreakerOpen, WorkflowTimeout, MaxIterationsExceeded, DAGValidationError) as e:
-        print(f"[Orchestrator] Pipeline error: {e}")
-        raise
+        try:
+            result = engine.execute(proposal_id=consultant_id, context=context)
+        except (CircuitBreakerOpen, WorkflowTimeout, MaxIterationsExceeded, DAGValidationError) as e:
+            print(f"[Orchestrator] Pipeline error: {e}")
+            raise
 
-    combined = result["outputs"].get("combined_agent", {})
-    relevance_map = combined.get("relevance_map", {}) if combined else {}
-    gap_result = combined.get("gap_analysis", {}) if combined else {}
+        combined = result["outputs"].get("combined_agent", {})
+        relevance_map = combined.get("relevance_map", {}) if combined else {}
+        gap_result = combined.get("gap_analysis", {}) if combined else {}
 
-    client_context = result["outputs"].get("client_research", {})
-    trace_id = result.get("trace_id", "")
+        client_context = result["outputs"].get("client_research", {})
+        trace_id = result.get("trace_id", "")
 
+    # --- STORE PROPOSAL ---
     proposal = Proposal(
         id=str(uuid.uuid4()),
         consultant_id=consultant_id,
@@ -185,14 +194,23 @@ def handle_twin_message(session_id: str, user_message: str) -> str:
 
     llm = LLMClient()
 
-    system_prompt = build_system_prompt(profile.structured, proposal.relevance_map)
+    with logfire.span(
+        "twin message (persona agent)",
+        session_id=session_id,
+        consultant_id=proposal.consultant_id,
+        consultant_name=profile.name,
+        turn_count=len(session.transcript),
+    ):
+        # Build system prompt with real profile data (grounding constraint)
+        system_prompt = build_system_prompt(profile.structured, proposal.relevance_map)
 
-    response = run_persona_agent(
-        user_message=user_message,
-        conversation_history=session.transcript,
-        system_prompt=system_prompt,
-        llm_client=llm
-    )
+        # Get response from Persona Agent
+        response = run_persona_agent(
+            user_message=user_message,
+            conversation_history=session.transcript,
+            system_prompt=system_prompt,
+            llm_client=llm
+        )
 
     db.append_message(session_id, "user", user_message)
     db.append_message(session_id, "assistant", response)
@@ -213,7 +231,12 @@ def end_twin_session(session_id: str) -> str:
     db.save_session(session)
 
     llm = LLMClient()
-    debrief_data = run_debrief_agent(session.transcript, llm)
+    with logfire.span(
+        "debrief agent",
+        session_id=session_id,
+        turn_count=len(session.transcript),
+    ):
+        debrief_data = run_debrief_agent(session.transcript, llm)
 
     debrief_text = json.dumps(debrief_data, indent=2)
 
