@@ -1,0 +1,34 @@
+{
+  "id": "pos_002",
+  "title": "Data Engineer - Snowflake Native ETL Migration",
+  "company": "Data Engineering Client",
+  "description": "We are seeking an experienced Data Engineer to design and build a Snowflake-native ETL pipeline, migrating an existing Dagster/PostgreSQL architecture into a fully Snowflake-based solution. This engagement is ideal for a hands-on engineer who thrives in greenfield data infrastructure work.",
+  "responsibilities": [
+    "Architect and implement a Snowflake-native ETL pipeline that replaces an existing Dagster/PostgreSQL process end-to-end",
+    "Build multi-source data ingestion pipelines pulling from REST APIs, bulk file downloads, and SFTP sources",
+    "Translate complex existing logic — including fuzzy name-matching (Jaro-Winkler similarity) and recursive CTEs — into performant Snowflake SQL at scale (1M+ records)",
+    "Implement robust deduplication strategies within Snowflake",
+    "Set up and maintain CI/CD deployment pipelines using GitHub Actions to manage code deployments to Snowflake",
+    "Read and interpret the existing Dagster pipeline to ensure full feature parity in the new architecture",
+    "Collaborate with the internal team to document the new architecture and support knowledge transfer"
+  ],
+  "requirements": {
+    "required": [
+      "Snowflake — deep hands-on experience with Snowflake SQL, performance tuning, and native features (Streams, Tasks, Stages, etc.)",
+      "Python — proficiency in Python for data pipeline development and scripting",
+      "GitHub Actions — demonstrated experience deploying code to Snowflake via GitHub Actions CI/CD workflows",
+      "Data pipeline experience — proven ability to build pipelines from REST APIs, file-based (bulk download), and SFTP sources"
+    ],
+    "nice_to_have": [
+      "dbt — experience with dbt for data transformation and modeling within Snowflake",
+      "Dagster — familiarity with Dagster (or similar orchestration tools) to aid in reading and migrating the existing pipeline",
+      "Nonprofit data sources — knowledge of IRS BMF, PayPal Giving Fund, CAF, or similar datasets",
+      "Fuzzy matching / advanced SQL — experience implementing Jaro-Winkler or other similarity algorithms and recursive CTEs in SQL"
+    ]
+  },
+  "domain": "Data Engineering",
+  "engagement_type": "Migration/Greenfield",
+  "location": "Remote",
+  "seniority": "Senior",
+  "language": "english"
+}
