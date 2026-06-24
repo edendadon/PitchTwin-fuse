@@ -52,6 +52,20 @@
         "AWS Solutions Architect - Professional"
       ],
       "tone_markers": "Direct and pragmatic; uses concrete metrics."
+    },
+    "relevance_map": {
+      "top_matches": [
+        {
+          "type": "experience",
+          "item": "AWS migration for Tier-1 bank",
+          "relevance_score": 9,
+          "reason": "Directly matches AWS + migration need",
+          "suggested_framing": "Lead with the bank migration."
+        }
+      ],
+      "secondary_matches": [],
+      "client_tone_match": "Be direct, use metrics.",
+      "headline_positioning": "Proven AWS migration lead for payments."
     }
   },
   "input": {
