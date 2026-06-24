@@ -1,0 +1,52 @@
+{
+  "description": "Index of all client positions in the Data directory for experimentation and evaluation",
+  "positions": [
+    {
+      "id": "pos_001",
+      "file": "position_1_snowflake_mvp.json",
+      "title": "Snowflake Expert for AI/Data MVP",
+      "company": "Stealth Startup (Silicon Valley)",
+      "domain": "AI/Data",
+      "seniority": "Expert",
+      "language": "hebrew"
+    },
+    {
+      "id": "pos_002",
+      "file": "position_2_snowflake_etl.json",
+      "title": "Data Engineer - Snowflake Native ETL Migration",
+      "company": "Data Engineering Client",
+      "domain": "Data Engineering",
+      "seniority": "Senior",
+      "language": "english"
+    },
+    {
+      "id": "pos_003",
+      "file": "position_3_dreeze_ai_platform.json",
+      "title": "AI Platform Builder - Internal GTM/Sales Acceleration",
+      "company": "Dreeze",
+      "domain": "AI/Backend",
+      "seniority": "Senior",
+      "language": "hebrew"
+    },
+    {
+      "id": "pos_004",
+      "file": "position_4_gong_java_backend.json",
+      "title": "Senior Java Backend Developer - Forecast Team",
+      "company": "GONG",
+      "domain": "Backend/Java",
+      "seniority": "Tech Lead",
+      "language": "hebrew"
+    },
+    {
+      "id": "pos_005",
+      "file": "position_5_bonterra_disbursement.json",
+      "title": "Senior Backend Developers - Automated Disbursement & Agentic Workflows",
+      "company": "Bonterra",
+      "domain": "Backend/AWS/Fintech",
+      "seniority": "Senior / Expert",
+      "language": "english"
+    }
+  ],
+  "total_positions": 5,
+  "use_case": "Client brief inputs for the PitchTwin pipeline (Profile Agent + Client Research Agent + end-to-end eval)"
+}

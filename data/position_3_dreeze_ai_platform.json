@@ -1,0 +1,56 @@
+{
+  "id": "pos_003",
+  "title": "AI Platform Builder - Internal GTM/Sales Acceleration",
+  "company": "Dreeze",
+  "client_overview": {
+    "contact_persons": [
+      "זיו קדם (Ziv Kedem) – מוביל היוזמה האסטרטגית",
+      "איה נוה-פרלמוטר (Aya Naveh-Perlmuter)"
+    ],
+    "business_domain": "Backend",
+    "service_type": "Expert",
+    "mission_type": "Long-term",
+    "work_model": "Hybrid - 3 days/week on-site",
+    "location": "ת״א",
+    "on_call": "Not Required",
+    "lead_status": "In Process"
+  },
+  "technical_profile": {
+    "company_description": "חברת B2B SaaS הפונה לשוק ה-Enterprise. החברה מקימה יוזמה אסטרטגית פנימית חדשה וחדשנית למנף ולהאיץ את כלל פעילות ה-Go-To-Market (GTM) והמכירות של הארגון באמצעות כלי AI, סוכנים אוטונומיים ומודלי שפה גדולים.",
+    "role_description": "פיתוח ותשתית של פלטפורמת AI פנימית בעלת השפעה עסקית ישירה, בעבודה ישירה מול זיו שמוביל את הפרויקט כ-Sponsor חזק. הפוקוס של התפקיד הוא פחות פיתוח מוצר קלאסי ויותר תזמור (Orchestration), בניית Workflows מורכבים, אינטגרציות וסוכני AI. מחפשים \"Builder\" ולא מפתח קלאסי – פרופיל מנוסה שיודע לחשוב מוצרית ועסקית, להציע רעיונות חדשים, להגדיר תהליכים ולעבוד בסביבה חדשנית ולא מובנית (אין צורך במומחיות עמוקה ב-Data Science או ML). ההתקשרות היא לחצי שנה לפחות עם אופציה לבחינת המשך הדרך.",
+    "tech_qualification": 4,
+    "requested_seniority": "Senior",
+    "tech_stack": [
+      "Python",
+      "LLMs",
+      "AI Agents",
+      "Claude",
+      "OpenAI",
+      "Git",
+      "Notion",
+      "Salesforce",
+      "Zoom transcripts",
+      "Internal AI infrastructure"
+    ],
+    "team_size": "Not specified"
+  },
+  "example_features": [
+    "בניית כלי ניתוח והצלבה אוטומטית של שיחות מכירה מול ה-Knowledge Base הארגוני",
+    "פיתוח מערכת המציעה המלצות ותשובות בזמן אמת לאנשי מכירות במהלך שיחה חיה",
+    "אוטומציה של עדכוני מאגרי מידע ארגוניים באמצעות יצירה אוטומטית של Pull Requests",
+    "הפקה אוטומטית של בריפים וסיכומים ממוקדים לקראת פגישות עסקיות",
+    "בניית פלטפורמת סימולציות מכירה ואימון (AI Coaching) לאנשי מכירות",
+    "תזמור Workflow-ים עסקיים מבוססי מודלי שפה ואינטגרציות למערכות כמו Salesforce ו-Zoom"
+  ],
+  "process_with_client": "זיו מוביל את התהליך באופן אישי. האתגר המרכזי שסומן הוא איתור מועמד Python בכיר שמשלב אוריינטציה עסקית/מוצרית יחד עם AI Adoption גבוה מאוד.",
+  "interview_intelligence": {
+    "gl_feedback_slots": 4,
+    "employee_feedback_slots": 4,
+    "recommendations": "Before your interview, read the latest entries in the table above and reach out to the last Tikal member who interviewed there for a 5-minute sync."
+  },
+  "domain": "AI/Backend",
+  "engagement_type": "Long-term Expert",
+  "location": "Tel Aviv (Hybrid)",
+  "seniority": "Senior",
+  "language": "hebrew"
+}
