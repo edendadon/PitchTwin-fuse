@@ -151,8 +151,11 @@ def extract_cv():
             "detected_name": detected_name
         })
 
-    except Exception as e:
-        return jsonify({"error": f"Failed to parse file: {str(e)}"}), 500
+    except Exception:
+        app.logger.exception("CV extraction failed")
+        return jsonify({
+            "error": "Failed to parse the file. Please try a different file or paste the text directly."
+        }), 500
 
 
 # -----------------------------------------------------------------------
@@ -179,9 +182,14 @@ def new_proposal():
         # Auto-create twin session
         twin_session = create_twin_session(proposal.id)
         return redirect(url_for("view_proposal", proposal_id=proposal.id))
-    except Exception as e:
+    except Exception:
+        app.logger.exception("Proposal pipeline failed")
         profiles = db.list_profiles()
-        return render_template("new_proposal.html", profiles=profiles, error=str(e))
+        return render_template(
+            "new_proposal.html",
+            profiles=profiles,
+            error="Could not generate the proposal. Please try again.",
+        )
 
 
 @app.route("/proposal/<proposal_id>")
@@ -241,8 +249,9 @@ def twin_message(session_id):
     try:
         response = handle_twin_message(session_id, user_message)
         return jsonify({"response": response})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        app.logger.exception("Twin message handling failed")
+        return jsonify({"error": "Something went wrong handling your message. Please try again."}), 500
 
 
 @app.route("/twin/<session_id>/end", methods=["POST"])
@@ -251,8 +260,9 @@ def end_session(session_id):
         debrief = end_twin_session(session_id)
         sess = db.get_session(session_id)
         return jsonify({"status": "ended", "proposal_id": sess.proposal_id})
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        app.logger.exception("Ending twin session failed")
+        return jsonify({"error": "Could not end the session. Please try again."}), 500
 
 
 # -----------------------------------------------------------------------
@@ -293,8 +303,9 @@ def demo_seed():
             sample_profile = json.load(f)
         with open(demo_brief_path) as f:
             sample_brief = json.load(f)
-    except FileNotFoundError as e:
-        return jsonify({"error": f"Demo data not found: {e}"}), 500
+    except FileNotFoundError:
+        app.logger.exception("Demo data file not found")
+        return jsonify({"error": "Demo data could not be loaded."}), 500
 
     # Check if demo profile already exists
     existing = [p for p in db.list_profiles() if p.name == sample_profile["name"]]
