@@ -307,6 +307,61 @@ class TestCheckpointResume:
         assert "b" in execution_log
         assert result["status"] == "completed"
 
+    def test_resume_from_in_progress_checkpoint(self):
+        """Resuming from an in_progress checkpoint must not crash and must
+        continue executing the remaining downstream nodes.
+
+        Regression: get_latest_in_progress() returns a dict whose output_data
+        is already json-decoded; execute() previously read it via attribute
+        access (.node_id/.output_data) and re-ran json.loads on it, raising
+        AttributeError/TypeError on every real resume.
+        """
+        from orchestrator.workflow import WorkflowEngine
+        from orchestrator.memory import MemoryStore
+
+        store = MemoryStore()
+        trace_store = MemoryStore()
+
+        execution_log = []
+
+        def node_a(input_data):
+            execution_log.append("a")
+            return {"a": "done"}
+
+        def node_b(input_data):
+            execution_log.append("b")
+            return {"b": "done"}
+
+        def node_c(input_data):
+            execution_log.append("c")
+            return {"c": "done"}
+
+        dag = [
+            {"id": "a", "type": "agent", "inputs": [], "agent_fn": node_a},
+            {"id": "b", "type": "agent", "inputs": ["a"], "agent_fn": node_b},
+            {"id": "c", "type": "agent", "inputs": ["b"], "agent_fn": node_c},
+        ]
+
+        # Node "b" was mid-flight when the previous run was interrupted.
+        store.save_checkpoint({
+            "proposal_id": "resume-inprogress",
+            "trace_id": "trace-inprogress",
+            "node_id": "b",
+            "phase": "b",
+            "input_data": {},
+            "output_data": {"b": "done"},
+            "status": "in_progress",
+            "created_at": "2026-06-24T00:00:00",
+        })
+
+        engine = WorkflowEngine(dag, store, trace_store)
+        result = engine.execute("resume-inprogress", {})
+
+        # Must complete without raising, and the not-yet-done downstream node runs.
+        assert result["status"] == "completed"
+        assert "a" not in execution_log
+        assert "c" in execution_log
+
 
 class TestDebugEndpoint:
     """T029: Debug trace endpoint — returns JSON execution graph"""

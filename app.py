@@ -360,8 +360,9 @@ def debug_trace(trace_id):
                 for t in traces
             ],
         })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    except Exception:
+        app.logger.exception("Failed to load execution trace for %s", trace_id)
+        return jsonify({"error": "Could not load the execution trace."}), 500
 
 
 if __name__ == "__main__":

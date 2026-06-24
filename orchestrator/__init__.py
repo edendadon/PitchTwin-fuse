@@ -94,6 +94,12 @@ def run_proposal_pipeline(consultant_id: str, client_brief: str, company_name: s
 
     print(f"\n[Orchestrator] Starting pipeline for {profile.name} → {company_name}")
 
+    # Allocate the proposal id up front so it can key the workflow checkpoints.
+    # Checkpoints are keyed by (proposal_id, node_id); using a per-proposal id
+    # keeps each run's checkpoints isolated (a consultant's second proposal must
+    # not collide with — and resume from — the first proposal's checkpoints).
+    proposal_id = str(uuid.uuid4())
+
     with logfire.span(
         "proposal pipeline",
         consultant_id=consultant_id,
@@ -120,7 +126,7 @@ def run_proposal_pipeline(consultant_id: str, client_brief: str, company_name: s
         }
 
         try:
-            result = engine.execute(proposal_id=consultant_id, context=context)
+            result = engine.execute(proposal_id=proposal_id, context=context)
         except (CircuitBreakerOpen, WorkflowTimeout, MaxIterationsExceeded, DAGValidationError) as e:
             print(f"[Orchestrator] Pipeline error: {e}")
             raise
@@ -134,7 +140,7 @@ def run_proposal_pipeline(consultant_id: str, client_brief: str, company_name: s
 
     # --- STORE PROPOSAL ---
     proposal = Proposal(
-        id=str(uuid.uuid4()),
+        id=proposal_id,
         consultant_id=consultant_id,
         client_brief=client_brief,
         company_name=company_name,

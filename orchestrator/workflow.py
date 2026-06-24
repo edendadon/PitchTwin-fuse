@@ -449,13 +449,16 @@ class WorkflowEngine:
 
         existing_in_progress = self.checkpoint_store.get_latest_in_progress(proposal_id)
         if existing_in_progress:
-            checkpoint_node_id = existing_in_progress.node_id
+            # get_latest_in_progress() returns a dict whose output_data has already
+            # been json-decoded by _row_to_checkpoint, so read it by key and do not
+            # decode it again (mirrors the completed-checkpoint branch below).
+            checkpoint_node_id = existing_in_progress["node_id"]
             for n in topo_order:
                 if n.id == checkpoint_node_id:
                     break
                 completed.add(n.id)
-                outputs[n.id] = json.loads(existing_in_progress.output_data)
-            outputs[checkpoint_node_id] = json.loads(existing_in_progress.output_data)
+                outputs[n.id] = existing_in_progress["output_data"]
+            outputs[checkpoint_node_id] = existing_in_progress["output_data"]
             completed.add(checkpoint_node_id)
         else:
             latest_checkpoint = self.checkpoint_store.get_latest_checkpoint(proposal_id)
