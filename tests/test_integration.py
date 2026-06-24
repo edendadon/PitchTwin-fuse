@@ -147,3 +147,12 @@ def test_debug_trace_ui_renders_nodes(client):
 
 def test_debug_trace_ui_404_for_unknown_proposal(client):
     assert client.get("/proposal/does-not-exist/trace").status_code == 404
+
+
+def test_dashboard_links_to_trace_for_traced_proposals(client):
+    """The dashboard proposals table exposes a Trace action for runs with a trace."""
+    proposal_id = _run_pipeline_via_ui(client)
+    html = client.get("/").get_data(as_text=True)
+
+    assert ">Trace<" in html
+    assert f"/proposal/{proposal_id}/trace" in html
