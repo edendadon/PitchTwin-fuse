@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- Project deps installed (`uv sync` / `pip install -r requirements.txt`); `pytest` and `pydantic` are present.
+- Project deps installed (`uv sync`); `pytest` and `pydantic` are present.
 - An LLM provider configured in `.env` (LiteLLM by default) — required for live agent + judge calls. Without it, the runner exits `3` (infrastructure error), never a false pass.
 
 ## Run evals for one agent
