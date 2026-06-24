@@ -84,23 +84,28 @@ class AgentHarness:
 
     def run(self, user_message, *, ground_against=None, grounded_field="skills"):
         """Execute the agent. Returns a validated dict (json mode) or string (text mode)."""
-        start = time.monotonic()
-        if self.mode == "text":
-            result, retries, valid = self._run_text(user_message), 0, True
-        else:
-            result, retries, valid = self._run_json(user_message)
+        # One Logfire span per agent call — this is the span that survives
+        # LOGFIRE_AGENTS_ONLY mode (no-op when Logfire isn't configured).
+        from observability import agent_span
 
-        unsupported = 0
-        if ground_against is not None and isinstance(result, dict):
-            guard = NoHallucinationGuardrail(ground_against)
-            flagged = guard.check(result.get(grounded_field, []))
-            unsupported = len(flagged)
-            if flagged:
-                print(f"[harness] guardrail: {self.name} claimed unsupported skill(s): {flagged}")
+        with agent_span(self.name, mode=self.mode):
+            start = time.monotonic()
+            if self.mode == "text":
+                result, retries, valid = self._run_text(user_message), 0, True
+            else:
+                result, retries, valid = self._run_json(user_message)
 
-        latency_ms = int((time.monotonic() - start) * 1000)
-        _trace(self.name, "ok", latency_ms, retries, valid, unsupported)
-        return result
+            unsupported = 0
+            if ground_against is not None and isinstance(result, dict):
+                guard = NoHallucinationGuardrail(ground_against)
+                flagged = guard.check(result.get(grounded_field, []))
+                unsupported = len(flagged)
+                if flagged:
+                    print(f"[harness] guardrail: {self.name} claimed unsupported skill(s): {flagged}")
+
+            latency_ms = int((time.monotonic() - start) * 1000)
+            _trace(self.name, "ok", latency_ms, retries, valid, unsupported)
+            return result
 
     def run_stream(self, user_message):
         """
