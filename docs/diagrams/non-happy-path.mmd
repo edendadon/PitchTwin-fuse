@@ -1,0 +1,33 @@
+%%{init: {'theme':'dark', 'themeVariables': {'fontSize':'16px'}}}%%
+flowchart TD
+    A([Agent.run]):::terminal --> B["LLMClient.call → provider<br/>litellm / gemini / groq"]:::agent
+    B --> C{Provider error?}
+    C -- yes --> R{"attempts left?<br/>max 3"}
+    R -- yes --> W["sleep 2^attempt s<br/>exponential backoff"]:::recover
+    W --> B
+    R -- no --> X1[["RuntimeError —<br/>LLM failed after 3 tries"]]:::fail
+    C -- no --> P["Parse JSON<br/>strip code fences"]:::recover
+    P --> Q{Parseable?}
+    Q -- no --> RX["regex-extract first object"]:::recover
+    RX --> Q2{Recovered?}
+    Q2 -- yes --> V
+    Q2 -- no --> RP
+    Q -- yes --> V["Validate vs<br/>Pydantic schema"]:::recover
+    V --> S{Schema OK?}
+    S -- yes --> G["Guardrail:<br/>flag skills absent from profile"]:::recover
+    G --> Z([Validated output]):::ok
+    S -- no --> RP{"harness retries<br/>left? max 2"}
+    RP -- yes --> AP["Re-prompt with<br/>validation error appended"]:::recover
+    AP --> B
+    RP -- "no · parseable" --> D[["WARN + return best-effort dict<br/>pipeline survives"]]:::warn
+    D --> Z
+    RP -- "no · unparseable" --> X1
+    X1 --> ESC["Orchestrator aggregates<br/>thread errors → RuntimeError"]:::fail
+    ESC --> UI[["Flask route catches →<br/>renders error to consultant"]]:::warn
+
+    classDef agent fill:#1f6feb,stroke:#58a6ff,color:#fff,stroke-width:2px;
+    classDef recover fill:#9e6a03,stroke:#e3b341,color:#fff,stroke-width:2px;
+    classDef fail fill:#da3633,stroke:#f85149,color:#fff,stroke-width:2px;
+    classDef warn fill:#bb8009,stroke:#e3b341,color:#fff,stroke-width:2px;
+    classDef ok fill:#238636,stroke:#3fb950,color:#fff,stroke-width:2px;
+    classDef terminal fill:#6e7681,stroke:#b1bac4,color:#fff,stroke-width:2px;

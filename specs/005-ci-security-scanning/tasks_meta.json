@@ -1,0 +1,126 @@
+{
+  "feature": "005-ci-security-scanning",
+  "created": "2026-06-24T13:24:29+03:00",
+  "tasks": {
+    "T001": {
+      "description": "Confirm branch/worktree and capture ci.yml baseline hash",
+      "files": ".github/workflows/ci.yml",
+      "execution_mode": "SYNC",
+      "status": "completed",
+      "agent_type": "general",
+      "started_at": "2026-06-24T13:26:17+03:00",
+      "completed_at": "2026-06-24T13:26:17+03:00",
+      "result_summary": "On branch 005; ci.yml baseline blob captured, matches origin/main"
+    },
+    "T002": {
+      "description": "Lock shared workflow conventions (advisory, scoped permissions, pinned versions)",
+      "files": "specs/005-ci-security-scanning/research.md",
+      "execution_mode": "SYNC",
+      "status": "completed",
+      "agent_type": "general",
+      "started_at": "2026-06-24T13:27:55+03:00",
+      "completed_at": "2026-06-24T13:27:55+03:00",
+      "result_summary": "Conventions locked (advisory, scoped perms, pinned versions) per research.md"
+    },
+    "T003": {
+      "description": "Create trivy.yml workflow (fs+config scan, SARIF upload, advisory)",
+      "files": ".github/workflows/trivy.yml",
+      "execution_mode": "SYNC",
+      "status": "completed",
+      "agent_type": "general",
+      "started_at": "2026-06-24T13:27:55+03:00",
+      "completed_at": "2026-06-24T13:27:55+03:00",
+      "result_summary": "Created trivy.yml: fs(vuln,secret)+config scans, SARIF upload if:always, exit-code 0, security-events:write on job"
+    },
+    "T004": {
+      "description": "Validate trivy.yml YAML/schema",
+      "files": ".github/workflows/trivy.yml",
+      "execution_mode": "ASYNC",
+      "status": "completed",
+      "agent_type": "general",
+      "started_at": "2026-06-24T13:27:55+03:00",
+      "completed_at": "2026-06-24T13:27:55+03:00",
+      "result_summary": "trivy.yml validated: actionlint clean; triggers pull_request/push/schedule present"
+    },
+    "T005": {
+      "description": "Create codeql.yml workflow (python init/analyze)",
+      "files": ".github/workflows/codeql.yml",
+      "execution_mode": "SYNC",
+      "status": "completed",
+      "agent_type": "general",
+      "started_at": "2026-06-24T13:27:55+03:00",
+      "completed_at": "2026-06-24T13:27:55+03:00",
+      "result_summary": "Created codeql.yml: python init build-mode none + analyze, security-events:write scoped"
+    },
+    "T006": {
+      "description": "Validate codeql.yml YAML/schema",
+      "files": ".github/workflows/codeql.yml",
+      "execution_mode": "ASYNC",
+      "status": "completed",
+      "agent_type": "general",
+      "started_at": "2026-06-24T13:27:55+03:00",
+      "completed_at": "2026-06-24T13:27:55+03:00",
+      "result_summary": "codeql.yml validated: actionlint clean"
+    },
+    "T007": {
+      "description": "Create dependabot.yml (uv + github-actions, weekly)",
+      "files": ".github/dependabot.yml",
+      "execution_mode": "ASYNC",
+      "status": "completed",
+      "agent_type": "general",
+      "started_at": "2026-06-24T13:27:55+03:00",
+      "completed_at": "2026-06-24T13:27:55+03:00",
+      "result_summary": "Created dependabot.yml v2: uv + github-actions ecosystems, weekly monday, grouped minor/patch"
+    },
+    "T008": {
+      "description": "Validate dependabot.yml v2 schema",
+      "files": ".github/dependabot.yml",
+      "execution_mode": "ASYNC",
+      "status": "completed",
+      "agent_type": "general",
+      "started_at": "2026-06-24T13:27:55+03:00",
+      "completed_at": "2026-06-24T13:27:55+03:00",
+      "result_summary": "dependabot.yml validated: version=2, ecosystems=[uv,github-actions], weekly"
+    },
+    "T009": {
+      "description": "Verify ci.yml unchanged vs origin/main",
+      "files": ".github/workflows/ci.yml",
+      "execution_mode": "SYNC",
+      "status": "completed",
+      "agent_type": "general",
+      "started_at": "2026-06-24T13:27:55+03:00",
+      "completed_at": "2026-06-24T13:27:55+03:00",
+      "result_summary": "ci.yml diff vs origin/main is EMPTY (unchanged)"
+    },
+    "T010": {
+      "description": "Verify permission scoping + free-only",
+      "files": ".github/workflows",
+      "execution_mode": "ASYNC",
+      "status": "completed",
+      "agent_type": "general",
+      "started_at": "2026-06-24T13:27:55+03:00",
+      "completed_at": "2026-06-24T13:27:55+03:00",
+      "result_summary": "security-events present only in codeql.yml+trivy.yml; 0 in ci.yml; no paid actions"
+    },
+    "T011": {
+      "description": "Confirm existing pipeline passes (ruff+pytest)",
+      "files": "tests/,pyproject.toml",
+      "execution_mode": "SYNC",
+      "status": "completed",
+      "agent_type": "general",
+      "started_at": "2026-06-24T13:27:55+03:00",
+      "completed_at": "2026-06-24T13:27:55+03:00",
+      "result_summary": "pytest 13 passed; ruff-not-installed is pre-existing (matches origin/main, continue-on-error); no regression"
+    },
+    "T012": {
+      "description": "Record rollout notes (Dependabot security setting, advisory, fork caveat)",
+      "files": "specs/005-ci-security-scanning/quickstart.md",
+      "execution_mode": "ASYNC",
+      "status": "completed",
+      "agent_type": "general",
+      "started_at": "2026-06-24T13:27:55+03:00",
+      "completed_at": "2026-06-24T13:27:55+03:00",
+      "result_summary": "Rollout notes recorded in quickstart.md + to be added to PR body (enable Dependabot security updates, advisory, fork caveat)"
+    }
+  }
+}
