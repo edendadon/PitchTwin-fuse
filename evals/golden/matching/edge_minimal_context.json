@@ -1,0 +1,67 @@
+{
+  "id": "edge_minimal_context",
+  "agent": "matching",
+  "description": "Rich profile against a terse client brief with little to match on.",
+  "tags": [
+    "edge"
+  ],
+  "source": {
+    "structured_profile": {
+      "name": "Alex Rivera",
+      "skills": [
+        "AWS",
+        "Microservices",
+        "Python"
+      ],
+      "experience": [
+        {
+          "company": "Tikal Tech",
+          "role": "Senior Consultant",
+          "description": "AWS migrations.",
+          "technologies": [
+            "AWS"
+          ]
+        }
+      ],
+      "projects": []
+    },
+    "client_context": {
+      "company_name": "VagueCorp",
+      "industry": "Unknown",
+      "key_challenges": [],
+      "required_skills": [],
+      "tech_stack_mentioned": [],
+      "tone": ""
+    }
+  },
+  "input": {
+    "structured_profile": {
+      "name": "Alex Rivera",
+      "skills": [
+        "AWS",
+        "Microservices",
+        "Python"
+      ],
+      "experience": [
+        {
+          "company": "Tikal Tech",
+          "role": "Senior Consultant",
+          "description": "AWS migrations.",
+          "technologies": [
+            "AWS"
+          ]
+        }
+      ],
+      "projects": []
+    },
+    "client_context": {
+      "company_name": "VagueCorp",
+      "industry": "Unknown",
+      "key_challenges": [],
+      "required_skills": [],
+      "tech_stack_mentioned": [],
+      "tone": ""
+    }
+  },
+  "expectations": {}
+}

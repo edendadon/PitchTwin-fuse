@@ -32,3 +32,6 @@ Thumbs.db
 
 # Uploads (if added later)
 uploads/
+
+# Eval run artifacts
+evals/.reports/
