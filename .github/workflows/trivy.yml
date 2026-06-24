@@ -1,0 +1,62 @@
+name: Trivy
+
+# Advisory dependency + configuration scanning. Findings are uploaded to the
+# repository Security > Code scanning tab; they never fail the build (exit-code 0).
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  schedule:
+    # Weekly, offset from CodeQL to avoid scheduling contention.
+    - cron: "31 4 * * 1"
+
+# Least privilege at the top level; the scan job elevates only what SARIF upload needs.
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  trivy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Trivy filesystem scan (vuln + secret)
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          scan-type: fs
+          scanners: vuln,secret
+          ignore-unfixed: true
+          format: sarif
+          output: trivy-fs.sarif
+          exit-code: "0" # advisory: do not fail the build on findings
+
+      - name: Upload filesystem scan SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        if: always() # upload even when the scan reports findings
+        with:
+          sarif_file: trivy-fs.sarif
+          category: trivy-fs
+
+      - name: Trivy configuration (misconfiguration) scan
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          scan-type: config
+          format: sarif
+          output: trivy-config.sarif
+          exit-code: "0"
+
+      - name: Upload configuration scan SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-config.sarif
+          category: trivy-config
