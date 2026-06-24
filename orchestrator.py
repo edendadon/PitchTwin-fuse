@@ -12,6 +12,9 @@ import threading
 import json
 from datetime import datetime
 
+import logfire
+from opentelemetry import context as otel_context
+
 import db
 from models import Proposal, TwinSession
 from llm_client import LLMClient
@@ -38,47 +41,68 @@ def run_proposal_pipeline(consultant_id: str, client_brief: str, company_name: s
 
     print(f"\n[Orchestrator] Starting pipeline for {profile.name} → {company_name}")
 
-    # --- PHASE 1: PARALLEL ---
-    structured_profile_result = {}
-    client_context_result = {}
-    errors = []
+    with logfire.span(
+        "proposal pipeline",
+        consultant_id=consultant_id,
+        consultant_name=profile.name,
+        company_name=company_name,
+    ):
+        # --- PHASE 1: PARALLEL ---
+        structured_profile_result = {}
+        client_context_result = {}
+        errors = []
 
-    def run_profile():
-        try:
-            result = run_profile_agent(profile.raw_profile, llm)
-            structured_profile_result.update(result)
-        except Exception as e:
-            errors.append(f"Profile Agent failed: {e}")
+        # Worker threads don't inherit the OTel context, so capture the current
+        # one here and re-attach it inside each thread to keep agent spans
+        # nested under this pipeline span.
+        parent_ctx = otel_context.get_current()
 
-    def run_research():
-        try:
-            result = run_client_research_agent(client_brief, company_name, llm)
-            client_context_result.update(result)
-        except Exception as e:
-            errors.append(f"Client Research Agent failed: {e}")
+        def run_profile():
+            token = otel_context.attach(parent_ctx)
+            try:
+                with logfire.span("agent: profile"):
+                    result = run_profile_agent(profile.raw_profile, llm)
+                    structured_profile_result.update(result)
+            except Exception as e:
+                errors.append(f"Profile Agent failed: {e}")
+            finally:
+                otel_context.detach(token)
 
-    t1 = threading.Thread(target=run_profile)
-    t2 = threading.Thread(target=run_research)
-    t1.start()
-    t2.start()
-    t1.join()
-    t2.join()
+        def run_research():
+            token = otel_context.attach(parent_ctx)
+            try:
+                with logfire.span("agent: client research"):
+                    result = run_client_research_agent(client_brief, company_name, llm)
+                    client_context_result.update(result)
+            except Exception as e:
+                errors.append(f"Client Research Agent failed: {e}")
+            finally:
+                otel_context.detach(token)
 
-    if errors:
-        raise RuntimeError(f"Parallel phase failed: {errors}")
+        with logfire.span("phase 1: profile + research (parallel)"):
+            t1 = threading.Thread(target=run_profile)
+            t2 = threading.Thread(target=run_research)
+            t1.start()
+            t2.start()
+            t1.join()
+            t2.join()
 
-    # Save structured profile back to db
-    profile.structured = structured_profile_result
-    db.save_profile(profile)
+        if errors:
+            raise RuntimeError(f"Parallel phase failed: {errors}")
 
-    print("[Orchestrator] Phase 1 complete. Starting Phase 2 (combined)...")
+        # Save structured profile back to db
+        profile.structured = structured_profile_result
+        db.save_profile(profile)
 
-    # --- PHASE 2: SINGLE COMBINED CALL ---
-    # HANDOFF: profile data + client context → combined agent (match + write + gap)
-    combined = run_combined_agent(structured_profile_result, client_context_result, llm)
+        print("[Orchestrator] Phase 1 complete. Starting Phase 2 (combined)...")
 
-    relevance_map = combined.get("relevance_map", {})
-    gap_result = combined.get("gap_analysis", {})
+        # --- PHASE 2: SINGLE COMBINED CALL ---
+        # HANDOFF: profile data + client context → combined agent (match + write + gap)
+        with logfire.span("phase 2: combined agent (match + write + gap)"):
+            combined = run_combined_agent(structured_profile_result, client_context_result, llm)
+
+        relevance_map = combined.get("relevance_map", {})
+        gap_result = combined.get("gap_analysis", {})
 
     # --- STORE PROPOSAL ---
     proposal = Proposal(
@@ -142,16 +166,23 @@ def handle_twin_message(session_id: str, user_message: str) -> str:
 
     llm = LLMClient()
 
-    # Build system prompt with real profile data (grounding constraint)
-    system_prompt = build_system_prompt(profile.structured, proposal.relevance_map)
+    with logfire.span(
+        "twin message (persona agent)",
+        session_id=session_id,
+        consultant_id=proposal.consultant_id,
+        consultant_name=profile.name,
+        turn_count=len(session.transcript),
+    ):
+        # Build system prompt with real profile data (grounding constraint)
+        system_prompt = build_system_prompt(profile.structured, proposal.relevance_map)
 
-    # Get response from Persona Agent
-    response = run_persona_agent(
-        user_message=user_message,
-        conversation_history=session.transcript,
-        system_prompt=system_prompt,
-        llm_client=llm
-    )
+        # Get response from Persona Agent
+        response = run_persona_agent(
+            user_message=user_message,
+            conversation_history=session.transcript,
+            system_prompt=system_prompt,
+            llm_client=llm
+        )
 
     # Append both turns to transcript
     db.append_message(session_id, "user", user_message)
@@ -173,7 +204,12 @@ def end_twin_session(session_id: str) -> str:
     db.save_session(session)
 
     llm = LLMClient()
-    debrief_data = run_debrief_agent(session.transcript, llm)
+    with logfire.span(
+        "debrief agent",
+        session_id=session_id,
+        turn_count=len(session.transcript),
+    ):
+        debrief_data = run_debrief_agent(session.transcript, llm)
 
     # Format debrief as readable text
     debrief_text = json.dumps(debrief_data, indent=2)

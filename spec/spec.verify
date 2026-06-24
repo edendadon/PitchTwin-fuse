@@ -43,7 +43,7 @@ Branch: `004-agent-harness` (base `main`) · Scope: PHASE 2.5 of `spec.tasks`
 **Risks**:
 - Output schemas could reject some real-LLM responses → mitigated by retry-with-feedback and a lenient final fallback (won't crash the demo).
 - Guardrail is advisory, not enforcing (see Pillar 1 / constitution IV).
-- Base is `main`, which lacks the in-flight `pydantic_ai`/`logfire` work → a future merge with those branches may need reconciliation (harness already supports the uniform `call_json` path they’d converge on).
+- This branch now merges current `main`, which has since absorbed #13's pydantic-ai refactor + logfire. The harness ports `matching`/`writer` off `pydantic_ai` and removes the dependency (`pyproject.toml` + `agents/pydantic_ai_setup.py`); tracing stays console-based while the merged `llm_client`/orchestrator keep their own logfire instrumentation. Conflicts resolved; full suite green post-merge.
 
 ## Overall Verdict
 

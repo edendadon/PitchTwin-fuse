@@ -11,7 +11,6 @@ import json
 from agents.harness import AgentHarness
 from agents.schemas import MatchingOutput
 
-
 SYSTEM_PROMPT = """You are a strategic consultant matching expert.
 
 You will receive:

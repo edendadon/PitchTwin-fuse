@@ -58,9 +58,9 @@
 
 **Agent migration — ALL agents**
 - [x] T-259: `profile_agent` + `client_research_agent` via harness (validated output, console trace) — primary acceptance target
-- [x] T-260: `matching_agent` + `writer_agent` via harness (already `call_json` on `main`; no `pydantic_ai` to remove)
+- [x] T-260: `matching_agent` + `writer_agent` via harness — ported off `pydantic_ai` (introduced by #13, now merged into `main`)
 - [x] T-262: `gap_agent`, `combined_agent`, `debrief_agent` via harness; `persona_agent` via harness in text mode
-- [n/a] T-261: Remove `pydantic_ai` dependency — **N/A on `main`** (never present)
+- [x] T-261: Remove `pydantic_ai` dependency from `pyproject.toml` + delete `agents/pydantic_ai_setup.py` (both arrived via the #13 merge)
 - [x] T-263: Orchestrator interface unchanged — verified `run_proposal_pipeline()` / `handle_twin_message()` signatures intact, all modules import without cycles
 
 **Harness tests** (`tests/test_harness.py`)
@@ -68,7 +68,7 @@
 - [x] T-272: No-hallucination guardrail flags a fabricated skill absent from the profile (issue acceptance test)
 - [x] T-274: Profile + Client Research run via the harness and produce schema-valid output
 - [x] T-275: Text-mode harness returns the (stripped) string response
-- [n/a] T-273: Rewrite matching/writer `_agent` mocks → `MockLLMClient` — **N/A on `main`** (tests already use `MockLLMClient`)
+- [x] T-273: Restore matching/writer tests to `MockLLMClient` (the #13 merge reintroduced the `patch.object(_agent)` pydantic mocks; reverted to harness style)
 
 ---
 
