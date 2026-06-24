@@ -7,6 +7,9 @@ Runs sequentially after Matching Agent.
 """
 
 import json
+from pydantic import BaseModel, Field
+from pydantic_ai import Agent
+from agents.pydantic_ai_setup import create_model
 
 SYSTEM_PROMPT = """You are an expert proposal writer for technology consulting firms.
 
@@ -39,7 +42,27 @@ Rules:
 """
 
 
-def run_writer_agent(relevance_map: dict, structured_profile: dict, client_context: dict, llm_client) -> dict:
+class WriterOutput(BaseModel):
+    tailored_cv: str = Field(description="Full tailored CV as markdown")
+    bio: str = Field(description="2-3 paragraph personalized bio in third person")
+    talking_points: list[str] = Field(description="3-5 talking points ready to say out loud")
+
+
+_agent: Agent | None = None
+
+
+def _get_agent() -> Agent:
+    global _agent
+    if _agent is None:
+        _agent = Agent(
+            create_model(),
+            output_type=WriterOutput,
+            system_prompt=SYSTEM_PROMPT,
+        )
+    return _agent
+
+
+def run_writer_agent(relevance_map: dict, structured_profile: dict, client_context: dict) -> dict:
     """
     Generate tailored CV, bio, and talking points.
 
@@ -47,7 +70,6 @@ def run_writer_agent(relevance_map: dict, structured_profile: dict, client_conte
         relevance_map: Output from Matching Agent
         structured_profile: Output from Profile Agent
         client_context: Output from Client Research Agent
-        llm_client: LLMClient instance
 
     Returns:
         Dict with tailored_cv, bio, talking_points
@@ -58,6 +80,7 @@ def run_writer_agent(relevance_map: dict, structured_profile: dict, client_conte
         "consultant_profile": structured_profile,
         "client_context": client_context
     })
-    result = llm_client.call_json(SYSTEM_PROMPT, user_message)
+    agent = _get_agent()
+    result = agent.run_sync(user_message)
     print("[Writer Agent] Done.")
-    return result
+    return result.output.model_dump()
