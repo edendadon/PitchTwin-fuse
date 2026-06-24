@@ -27,30 +27,9 @@ for arg in "$@"; do
     esac
 done
 
-# Get script directory for common.sh sourcing
+# Get script directory and load common functions
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-# Find project root by walking up from script location
-_find_project_root() {
-    local dir="$SCRIPT_DIR"
-    while [ "$dir" != "/" ]; do
-        if [ -d "$dir/.specify" ] || [ -d "$dir/.git" ]; then
-            echo "$dir"
-            return 0
-        fi
-        dir="$(dirname "$dir")"
-    done
-    return 1
-}
-
-PROJECT_ROOT="$(_find_project_root)" || PROJECT_ROOT="$SCRIPT_DIR"
-
-# Load common functions - use absolute path from project root
-if [[ -n "$PROJECT_ROOT" && -f "$PROJECT_ROOT/.specify/scripts/bash/common.sh" ]]; then
-    source "$PROJECT_ROOT/.specify/scripts/bash/common.sh"
-elif [[ -f "$SCRIPT_DIR/common.sh" ]]; then
-    source "$SCRIPT_DIR/common.sh"
-fi
+source "$SCRIPT_DIR/common.sh"
 
 # If no trace file specified, use current feature trace
 if [[ -z "$TRACE_FILE" ]]; then
@@ -65,7 +44,7 @@ if [[ ! -f "$TRACE_FILE" ]]; then
         printf '{"valid":false,"error":"Trace file not found: %s"}\n' "$TRACE_FILE"
     else
         echo "ERROR: Trace file not found: $TRACE_FILE" >&2
-        echo "Run /spec.trace to generate a session trace." >&2
+        echo "Run /levelup.trace to generate a session trace." >&2
     fi
     exit 1
 fi
