@@ -128,6 +128,7 @@ class LLMClient:
             contents=user_message,
             config=types.GenerateContentConfig(
                 system_instruction=system_prompt,
+                temperature=0,
             )
         )
         self._emit_usage("gemini-2.0-flash", response)
@@ -142,6 +143,7 @@ class LLMClient:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_message},
                 ],
+                temperature=0,
             )
         self._emit_usage(model, response)
         return response.choices[0].message.content
@@ -153,6 +155,7 @@ class LLMClient:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_message},
             ],
+            temperature=0,
         )
         self._emit_usage(LITELLM_MODEL, response)
         return response.choices[0].message.content
@@ -185,6 +188,7 @@ class LLMClient:
             contents=user_message,
             config=types.GenerateContentConfig(
                 system_instruction=system_prompt,
+                temperature=0,
             ),
         ):
             if chunk.text:
@@ -199,6 +203,7 @@ class LLMClient:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_message},
                 ],
+                temperature=0,
                 stream=True,
             )
             for chunk in stream:
@@ -213,6 +218,7 @@ class LLMClient:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_message},
             ],
+            temperature=0,
             stream=True,
         )
         for chunk in stream:
