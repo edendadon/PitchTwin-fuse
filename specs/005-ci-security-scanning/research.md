@@ -14,7 +14,7 @@ All "NEEDS CLARIFICATION" items from the Technical Context are resolved below. F
 
 ## Decision 2: Trivy — scan modes and SARIF upload
 
-- **Decision**: Use `aquasecurity/trivy-action` pinned to a stable release (`@v0.33.1`, bundling Trivy ≤ v0.65.x). Run two scans: `scan-type: fs` (dependency/vuln) and `scan-type: config` (misconfiguration). Output `format: sarif` to a file, then upload with `github/codeql-action/upload-sarif@v3` guarded by `if: always()`.
+- **Decision**: Use `aquasecurity/trivy-action` pinned to a stable release (`@v0.36.0`, bundling Trivy ≤ v0.65.x). Run two scans: `scan-type: fs` (dependency/vuln) and `scan-type: config` (misconfiguration). Output `format: sarif` to a file, then upload with `github/codeql-action/upload-sarif@v3` guarded by `if: always()`.
 - **Rationale**: `fs` covers the lockfile/dependency CVEs; `config` covers IaC/Dockerfile/YAML misconfigurations. SARIF upload routes findings into the central code-scanning dashboard (FR-004). `if: always()` ensures findings upload even if a later step is configured to fail. Pinning below the v0.34.0 trivy-action (which bumped bundled Trivy to v0.69.1) avoids the documented SARIF-upload regression.
 - **Known risks / mitigations**:
   - *SARIF upload failures on certain bundled Trivy versions* (trivy-action #408, trivy #10196) → pin to a known-good trivy-action release.
