@@ -31,7 +31,7 @@ def test_eval_case(case):
     try:
         output = entry.invoke(case)
     except InfraError as exc:
-        results.record(
+        results.write_case(
             case.agent, case.id, Status.ERROR.value,
             [{"evaluator": "invoke", "status": "ERROR", "reason": str(exc)}],
         )
@@ -49,7 +49,7 @@ def test_eval_case(case):
     failed = [v for v in verdicts if v.status == Status.FAIL]
     status = Status.ERROR if has_error else (Status.FAIL if failed else Status.PASS)
 
-    results.record(
+    results.write_case(
         case.agent, case.id, status.value,
         [v.model_dump(mode="json") for v in verdicts],
     )

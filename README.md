@@ -97,6 +97,21 @@ Tests use a mock LLM client — no API calls required.
 
 ---
 
+## Agent Evals
+
+The 7 agents are quality-gated by a golden-set eval framework (schema, factual
+consistency, and an LLM-judge hallucination gate). See **[`evals/README.md`](evals/README.md)**.
+
+```bash
+python -m evals.run --agent matching      # one agent
+python -m evals.run --all --workers 6      # all agents, in parallel
+```
+
+The offline eval meta-tests run as part of `pytest tests/` (and CI); the live
+`evals.run` invokes the real model.
+
+---
+
 ## Project Structure
 
 ```
