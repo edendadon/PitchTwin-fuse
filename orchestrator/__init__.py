@@ -19,7 +19,7 @@ from llm_client import LLMClient
 from agents.profile_agent import run_profile_agent
 from agents.client_research_agent import run_client_research_agent
 from agents.combined_agent import run_combined_agent
-from agents.persona_agent import build_system_prompt, run_persona_agent
+from agents.persona_agent import build_system_prompt, run_persona_agent, run_persona_agent_stream
 from agents.debrief_agent import run_debrief_agent
 from orchestrator.workflow import WorkflowEngine, NodeConfig, CircuitBreakerOpen, WorkflowTimeout, MaxIterationsExceeded, DAGValidationError
 from orchestrator.memory import MemoryStore
@@ -76,7 +76,7 @@ def _build_proposal_dag(profile_id: str, client_brief: str, company_name: str, l
     return dag
 
 
-def run_proposal_pipeline(consultant_id: str, client_brief: str, company_name: str) -> Proposal:
+def run_proposal_pipeline(consultant_id: str, client_brief: str, company_name: str, proposal_id: str = None) -> Proposal:
     """
     Full pipeline: profile + research → matching → writer + gap → proposal stored.
 
@@ -94,11 +94,8 @@ def run_proposal_pipeline(consultant_id: str, client_brief: str, company_name: s
 
     print(f"\n[Orchestrator] Starting pipeline for {profile.name} → {company_name}")
 
-    # Allocate the proposal id up front so it can key the workflow checkpoints.
-    # Checkpoints are keyed by (proposal_id, node_id); using a per-proposal id
-    # keeps each run's checkpoints isolated (a consultant's second proposal must
-    # not collide with — and resume from — the first proposal's checkpoints).
-    proposal_id = str(uuid.uuid4())
+    if proposal_id is None:
+        proposal_id = str(uuid.uuid4())
 
     with logfire.span(
         "proposal pipeline",
@@ -150,7 +147,7 @@ def run_proposal_pipeline(consultant_id: str, client_brief: str, company_name: s
         gap_analysis=json.dumps(gap_result),
         relevance_map=relevance_map,
         client_context=client_context,
-        status="ready",
+        status="awaiting_approval",
         created_at=datetime.utcnow().isoformat()
     )
     db.save_proposal(proposal)
@@ -222,6 +219,58 @@ def handle_twin_message(session_id: str, user_message: str) -> str:
     db.append_message(session_id, "assistant", response)
 
     return response
+
+
+def handle_twin_message_stream(session_id: str, user_message: str):
+    """
+    Generator yielding SSE-formatted token chunks for streaming twin response.
+    User message is appended immediately; assistant response is assembled and
+    saved only after the generator is fully consumed (client stayed connected).
+    """
+    session = db.get_session(session_id)
+    if not session:
+        raise ValueError(f"Session {session_id} not found")
+    if session.status == "ended":
+        yield 'data: {"token": "This conversation has ended."}\n\n'
+        yield 'data: {"done": true}\n\n'
+        return
+
+    proposal = db.get_proposal(session.proposal_id)
+    if not proposal:
+        raise ValueError(f"Proposal {session.proposal_id} not found")
+
+    profile = db.get_profile(proposal.consultant_id)
+    if not profile:
+        raise ValueError(f"Profile not found for proposal {proposal.consultant_id}")
+
+    llm = LLMClient()
+
+    prior_transcript = list(session.transcript)
+    system_prompt = build_system_prompt(profile.structured, proposal.relevance_map)
+
+    db.append_message(session_id, "user", user_message)
+
+    full_tokens = []
+    with logfire.span(
+        "twin message stream (persona agent)",
+        session_id=session_id,
+        consultant_id=proposal.consultant_id,
+        consultant_name=profile.name,
+        turn_count=len(prior_transcript),
+    ):
+        for token in run_persona_agent_stream(
+            user_message=user_message,
+            conversation_history=prior_transcript,
+            system_prompt=system_prompt,
+            llm_client=llm,
+        ):
+            full_tokens.append(token)
+            yield f'data: {json.dumps({"token": token})}\n\n'
+
+    assembled = "".join(full_tokens)
+    if assembled:
+        db.append_message(session_id, "assistant", assembled)
+    yield 'data: {"done": true}\n\n'
 
 
 def end_twin_session(session_id: str) -> str:

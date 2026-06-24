@@ -13,12 +13,17 @@ from agents.client_research_agent import run_client_research_agent
 from agents.matching_agent import run_matching_agent
 from agents.writer_agent import run_writer_agent
 from agents.gap_agent import run_gap_agent
-from agents.persona_agent import build_system_prompt, run_persona_agent
+from agents.persona_agent import build_system_prompt, run_persona_agent, run_persona_agent_stream
 from agents.debrief_agent import run_debrief_agent
 
 
 class MockLLMClient:
     """Minimal mock that returns canned JSON responses."""
+
+    def call_stream(self, system_prompt, user_message):
+        """Yields three canned tokens."""
+        for token in ["Hello", " there", "!"]:
+            yield token
 
     def call(self, system_prompt, user_message):
         return '{"result": "mock"}'
@@ -161,6 +166,138 @@ def test_debrief_agent_with_transcript():
     print("PASS: debrief_agent (with transcript)")
 
 
+def test_run_persona_agent_stream():
+    mock = MockLLMClient()
+    profile = {
+        "name": "Test Consultant",
+        "skills": ["Python"],
+        "experience": [],
+        "projects": [],
+        "tone_markers": "Direct."
+    }
+    relevance_map = {"top_matches": [], "headline_positioning": "Strong fit."}
+    system_prompt = build_system_prompt(profile, relevance_map)
+
+    tokens = list(run_persona_agent_stream(
+        user_message="Tell me about yourself.",
+        conversation_history=[],
+        system_prompt=system_prompt,
+        llm_client=mock
+    ))
+    assert len(tokens) > 0
+    assert all(isinstance(t, str) for t in tokens)
+    assembled = "".join(tokens)
+    assert assembled == "Hello there!"
+    print("PASS: run_persona_agent_stream")
+
+
+def test_run_persona_agent_stream_with_history():
+    mock = MockLLMClient()
+    profile = {"name": "Test", "skills": [], "experience": [], "projects": [], "tone_markers": "Direct."}
+    relevance_map = {"top_matches": [], "headline_positioning": ""}
+    system_prompt = build_system_prompt(profile, relevance_map)
+
+    history = [
+        {"role": "user", "content": "Hi"},
+        {"role": "assistant", "content": "Hello!"},
+    ]
+    tokens = list(run_persona_agent_stream(
+        user_message="What's your experience?",
+        conversation_history=history,
+        system_prompt=system_prompt,
+        llm_client=mock
+    ))
+    assert "".join(tokens) == "Hello there!"
+    print("PASS: run_persona_agent_stream (with history)")
+
+
+def test_proposal_status_and_approve_routes():
+    """Integration test: status route returns correct values; approve route creates session."""
+    import uuid as uuid_mod
+    from app import app as flask_app
+    import db as db_mod
+    from models import Proposal, ConsultantProfile
+    from datetime import datetime
+
+    flask_app.config["TESTING"] = True
+    flask_app.config["SECRET_KEY"] = "test"
+
+    with flask_app.test_client() as client:
+        db_mod.init_db()
+
+        # Create a minimal consultant profile
+        profile_id = str(uuid_mod.uuid4())
+        profile = ConsultantProfile(
+            id=profile_id, name="Tester",
+            raw_profile="Test profile",
+            structured={},
+            created_at=datetime.utcnow().isoformat()
+        )
+        db_mod.save_profile(profile)
+
+        # Create proposal in awaiting_approval state
+        proposal_id = str(uuid_mod.uuid4())
+        proposal = Proposal(
+            id=proposal_id,
+            consultant_id=profile_id,
+            client_brief="Test brief",
+            company_name="TestCo",
+            status="awaiting_approval",
+            created_at=datetime.utcnow().isoformat()
+        )
+        db_mod.save_proposal(proposal)
+
+        # GET /proposal/<id>/status → AWAITING_APPROVAL
+        res = client.get(f"/proposal/{proposal_id}/status")
+        assert res.status_code == 200
+        data = res.get_json()
+        assert data["status"] == "AWAITING_APPROVAL"
+
+        # POST /proposal/<id>/approve → creates session, status becomes READY
+        res = client.post(f"/proposal/{proposal_id}/approve")
+        assert res.status_code in (200, 302)
+
+        res = client.get(f"/proposal/{proposal_id}/status")
+        data = res.get_json()
+        assert data["status"] == "READY"
+
+        # Session should exist
+        sess = db_mod.get_session_by_proposal(proposal_id)
+        assert sess is not None
+
+        # Duplicate approve → redirects with flash
+        res = client.post(f"/proposal/{proposal_id}/approve", follow_redirects=False)
+        assert res.status_code == 302
+
+    print("PASS: proposal_status_and_approve_routes")
+
+
+def test_proposal_status_generating():
+    import uuid as uuid_mod
+    from app import app as flask_app
+    import db as db_mod
+    from models import Proposal, ConsultantProfile
+    from datetime import datetime
+
+    flask_app.config["TESTING"] = True
+    with flask_app.test_client() as client:
+        db_mod.init_db()
+        profile_id = str(uuid_mod.uuid4())
+        db_mod.save_profile(ConsultantProfile(
+            id=profile_id, name="T", raw_profile="x", structured={},
+            created_at=datetime.utcnow().isoformat()
+        ))
+        proposal_id = str(uuid_mod.uuid4())
+        db_mod.save_proposal(Proposal(
+            id=proposal_id, consultant_id=profile_id, client_brief="b",
+            company_name="C", status="generating",
+            created_at=datetime.utcnow().isoformat()
+        ))
+        res = client.get(f"/proposal/{proposal_id}/status")
+        assert res.get_json()["status"] == "GENERATING"
+    print("PASS: proposal_status_generating")
+
+
 if __name__ == "__main__":
     print("\n=== PitchTwin Agent Tests ===\n")
     test_profile_agent()
@@ -171,4 +308,8 @@ if __name__ == "__main__":
     test_persona_agent()
     test_debrief_agent_empty()
     test_debrief_agent_with_transcript()
+    test_run_persona_agent_stream()
+    test_run_persona_agent_stream_with_history()
+    test_proposal_status_and_approve_routes()
+    test_proposal_status_generating()
     print("\nAll tests passed.")

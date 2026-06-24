@@ -28,7 +28,7 @@ class Proposal:
     gap_analysis: str = ""
     relevance_map: Dict[str, Any] = field(default_factory=dict)
     client_context: Dict[str, Any] = field(default_factory=dict)
-    status: str = "pending"  # pending | ready
+    status: str = "generating"  # generating | awaiting_approval | ready
     created_at: str = field(default_factory=lambda: datetime.utcnow().isoformat())
 
 

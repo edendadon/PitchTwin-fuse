@@ -81,3 +81,27 @@ def run_persona_agent(
 
     harness = AgentHarness(llm_client, name="persona", system_prompt=system_prompt, mode="text")
     return harness.run(user_message_with_context)
+
+
+def run_persona_agent_stream(
+    user_message: str,
+    conversation_history: list,
+    system_prompt: str,
+    llm_client
+):
+    """
+    Generator yielding string tokens for the twin's streaming chat response.
+    Mirrors run_persona_agent but delegates to harness.run_stream().
+    """
+    history_text = ""
+    for turn in conversation_history[-10:]:
+        role_label = "Client" if turn["role"] == "user" else "You (Twin)"
+        history_text += f"{role_label}: {turn['content']}\n\n"
+
+    if history_text:
+        user_message_with_context = f"Conversation so far:\n{history_text}\nClient: {user_message}"
+    else:
+        user_message_with_context = f"Client: {user_message}"
+
+    harness = AgentHarness(llm_client, name="persona", system_prompt=system_prompt, mode="text")
+    yield from harness.run_stream(user_message_with_context)

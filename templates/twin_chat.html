@@ -110,24 +110,75 @@ async function sendMessage() {
   addTyping();
 
   try {
-    const res = await fetch(`/twin/${SESSION_ID}/message`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: text })
-    });
-    const data = await res.json();
-    removeTyping();
-    if (data.error) {
-      addMessage('system', 'Error: ' + data.error);
-    } else {
-      addMessage('assistant', data.response);
-    }
+    await sendMessageStream(text);
   } catch (e) {
-    removeTyping();
-    addMessage('system', 'Connection error. Please try again.');
+    // Fallback to non-streaming on any error
+    try {
+      const res = await fetch(`/twin/${SESSION_ID}/message`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: text })
+      });
+      const data = await res.json();
+      removeTyping();
+      if (data.error) {
+        addMessage('system', 'Error: ' + data.error);
+      } else {
+        addMessage('assistant', data.response);
+      }
+    } catch (e2) {
+      removeTyping();
+      addMessage('system', 'Connection error. Please try again.');
+    }
   } finally {
     btn.disabled = false;
     input.focus();
+  }
+}
+
+async function sendMessageStream(text) {
+  const res = await fetch(`/twin/${SESSION_ID}/message/stream`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: text })
+  });
+
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+
+  removeTyping();
+  const bubble = document.createElement('div');
+  bubble.className = 'message assistant';
+  chatBox.appendChild(bubble);
+
+  let buffer = '';
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split('\n');
+    buffer = lines.pop(); // keep incomplete last line
+
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      const payload = line.slice(6).trim();
+      if (!payload) continue;
+      try {
+        const evt = JSON.parse(payload);
+        if (evt.token) {
+          bubble.textContent += evt.token;
+          chatBox.scrollTop = chatBox.scrollHeight;
+        }
+      } catch (_) {}
+    }
+  }
+
+  if (!bubble.textContent) {
+    bubble.remove();
+    throw new Error('Empty stream response');
   }
 }
 

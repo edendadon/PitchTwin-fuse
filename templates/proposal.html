@@ -2,6 +2,15 @@
 {% block title %}Proposal — {{ proposal.company_name }} — PitchTwin{% endblock %}
 
 {% block content %}
+
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    {% for msg in messages %}
+    <div class="flash-message">{{ msg }}</div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
 <div class="page-header">
   <div>
     <h1>Proposal: {{ proposal.company_name }}</h1>
@@ -17,7 +26,47 @@
   {% endif %}
 </div>
 
-<!-- Twin link for sharing -->
+<!-- Generating: show spinner and poll for status -->
+{% if proposal.status == 'generating' %}
+<div class="status-card generating" id="status-banner">
+  <div class="spinner"></div>
+  <div>
+    <strong>Generating proposal…</strong>
+    <p>The AI pipeline is running. This page will refresh automatically when ready.</p>
+  </div>
+</div>
+<script>
+(function poll() {
+  setTimeout(function() {
+    fetch('/proposal/{{ proposal.id }}/status')
+      .then(r => r.json())
+      .then(data => {
+        if (data.status !== 'GENERATING') {
+          window.location.reload();
+        } else {
+          poll();
+        }
+      })
+      .catch(() => poll());
+  }, 15000);
+})();
+</script>
+{% endif %}
+
+<!-- Awaiting approval: show approve button -->
+{% if proposal.status == 'awaiting_approval' %}
+<div class="status-card awaiting-approval">
+  <div>
+    <strong>Awaiting your approval</strong>
+    <p>Review the proposal below. When you're ready to share the twin chat with the client, click Approve.</p>
+  </div>
+  <form action="/proposal/{{ proposal.id }}/approve" method="POST">
+    <button type="submit" class="btn-twin">Approve &amp; Create Client Link</button>
+  </form>
+</div>
+{% endif %}
+
+<!-- Twin link for sharing (after approval) -->
 {% if twin_session %}
 <div class="share-card">
   <strong>Client Link:</strong>
@@ -138,6 +187,16 @@
   </div>
 </div>
 
+<style>
+.flash-message { background: #fef3c7; color: #92400e; padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; }
+.status-card { display: flex; align-items: center; gap: 16px; padding: 16px 20px;
+               border-radius: 12px; margin-bottom: 20px; }
+.status-card.generating { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
+.status-card.awaiting-approval { background: #f0fdf4; border: 1px solid #86efac; color: #166534; }
+.spinner { width: 28px; height: 28px; border: 3px solid #bfdbfe; border-top-color: #2563eb;
+           border-radius: 50%; animation: spin 0.8s linear infinite; flex-shrink: 0; }
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
 <script>
 function showTab(name) {
   document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));

@@ -49,6 +49,10 @@ class FakeLLMClient:
         # the fake must be inert.
         pass
 
+    def call_stream(self, system_prompt, user_message):
+        """Yield the full fake response as a single chunk."""
+        yield self.call(system_prompt, user_message)
+
     def call(self, system_prompt, user_message, retries=3):
         sp = system_prompt.lower()
         # persona_agent.build_system_prompt embeds "CRITICAL RULES" + name.

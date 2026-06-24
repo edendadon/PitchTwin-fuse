@@ -3,16 +3,19 @@ End-to-end integration test: drives PitchTwin through the exact UI flow.
 
   1. POST /demo/seed                          (load sample profile + brief)
   2. GET  /proposal/new                       (render the form)
-  3. POST /proposal/new                       (run pipeline -> 302 redirect)
-  4. GET  /proposal/<id>                       (render proposal; extract twin link)
-  5. GET  /twin/<session_id>                   (open the twin chat)
-  6. POST /twin/<session_id>/message {"aws"}   (ask the twin)
+  3. POST /proposal/new                       (pipeline starts in background, 302 redirect)
+  4. GET  /proposal/<id>/status               (poll until AWAITING_APPROVAL)
+  5. POST /proposal/<id>/approve              (consultant approves → creates twin session)
+  6. GET  /proposal/<id>                      (render proposal; extract twin link)
+  7. GET  /twin/<session_id>                  (open the twin chat)
+  8. POST /twin/<session_id>/message {"aws"}  (ask the twin)
 
 Runs with NO real LLM calls and NO API key: conftest patches
 orchestrator.LLMClient with FakeLLMClient and points DB_PATH at a temp file.
 """
 
 import re
+import time
 
 # str(uuid.uuid4()) is lowercase hex with dashes; accept either case to be safe.
 # Anchored inside the href so it matches the clickable anchor, not the
@@ -35,7 +38,7 @@ def test_full_demo_flow(client):
     r = client.get("/proposal/new")
     assert r.status_code == 200
 
-    # --- STEP 3: Generate Proposal Package (runs the pipeline) --------------
+    # --- STEP 3: Submit proposal (pipeline starts in background thread) -----
     r = client.post(
         "/proposal/new",
         data={
@@ -51,7 +54,29 @@ def test_full_demo_flow(client):
     assert m, f"unexpected redirect target: {location!r}"
     proposal_id = m.group(1)
 
-    # --- STEP 4: View proposal; extract the twin link from rendered HTML ----
+    # Immediately the proposal is in "generating" state
+    r = client.get(f"/proposal/{proposal_id}/status")
+    assert r.status_code == 200
+
+    # --- STEP 4: Poll status until pipeline completes -----------------------
+    for _ in range(60):  # up to ~30 s
+        status_data = client.get(f"/proposal/{proposal_id}/status").get_json()
+        if status_data["status"] == "AWAITING_APPROVAL":
+            break
+        assert status_data["status"] not in ("ERROR", "error"), \
+            f"Pipeline reported error: {status_data}"
+        time.sleep(0.5)
+    else:
+        raise AssertionError("Pipeline did not reach AWAITING_APPROVAL within 30 s")
+
+    # --- STEP 5: Consultant approves ----------------------------------------
+    r = client.post(f"/proposal/{proposal_id}/approve", follow_redirects=False)
+    assert r.status_code == 302
+
+    status_data = client.get(f"/proposal/{proposal_id}/status").get_json()
+    assert status_data["status"] == "READY"
+
+    # --- STEP 6: View proposal; extract the twin link from rendered HTML ----
     r = client.get(f"/proposal/{proposal_id}")
     assert r.status_code == 200
     html = r.get_data(as_text=True)
@@ -66,11 +91,11 @@ def test_full_demo_flow(client):
     db_session = db.get_session_by_proposal(proposal_id)
     assert db_session is not None and db_session.id == session_id
 
-    # --- STEP 5: Open the Client Twin chat page -----------------------------
+    # --- STEP 7: Open the Client Twin chat page -----------------------------
     r = client.get(f"/twin/{session_id}")
     assert r.status_code == 200
 
-    # --- STEP 6: Ask the twin "aws" -----------------------------------------
+    # --- STEP 8: Ask the twin "aws" -----------------------------------------
     r = client.post(f"/twin/{session_id}/message", json={"message": "aws"})
     assert r.status_code == 200
     body = r.get_json()

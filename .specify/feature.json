@@ -1,3 +1,5 @@
 {
-  "feature_directory": "specs/004-dag-workflow-engine"
+  "feature_directory": "changes/006-streaming-persona-agent",
+  "feature_branch": "006-streaming-persona-agent",
+  "feature_num": "006"
 }

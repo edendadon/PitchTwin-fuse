@@ -20,7 +20,7 @@ import uuid
 import json
 import threading
 from datetime import datetime
-from flask import Flask, render_template, request, redirect, url_for, jsonify, session
+from flask import Flask, render_template, request, redirect, url_for, jsonify, session, flash, Response, stream_with_context
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 
@@ -34,11 +34,12 @@ from observability import configure_logfire, tag_user_on_current_span
 configure_logfire()
 
 import db
-from models import ConsultantProfile
+from models import ConsultantProfile, Proposal
 from orchestrator import (
     run_proposal_pipeline,
     create_twin_session,
     handle_twin_message,
+    handle_twin_message_stream,
     end_twin_session
 )
 from orchestrator.memory import MemoryStore
@@ -177,20 +178,29 @@ def new_proposal():
         profiles = db.list_profiles()
         return render_template("new_proposal.html", profiles=profiles, error="All fields are required.")
 
-    # Run pipeline synchronously for demo (switch to background thread for prod)
-    try:
-        proposal = run_proposal_pipeline(consultant_id, client_brief, company_name)
-        # Auto-create twin session
-        twin_session = create_twin_session(proposal.id)
-        return redirect(url_for("view_proposal", proposal_id=proposal.id))
-    except Exception:
-        app.logger.exception("Proposal pipeline failed")
-        profiles = db.list_profiles()
-        return render_template(
-            "new_proposal.html",
-            profiles=profiles,
-            error="Could not generate the proposal. Please try again.",
-        )
+    proposal_id = str(uuid.uuid4())
+    placeholder = Proposal(
+        id=proposal_id,
+        consultant_id=consultant_id,
+        client_brief=client_brief,
+        company_name=company_name,
+        status="generating",
+        created_at=datetime.utcnow().isoformat(),
+    )
+    db.save_proposal(placeholder)
+
+    def _run_pipeline():
+        try:
+            run_proposal_pipeline(consultant_id, client_brief, company_name, proposal_id=proposal_id)
+        except Exception:
+            app.logger.exception("Background pipeline failed for proposal %s", proposal_id)
+            failed = db.get_proposal(proposal_id)
+            if failed:
+                failed.status = "error"
+                db.save_proposal(failed)
+
+    threading.Thread(target=_run_pipeline, daemon=True).start()
+    return redirect(url_for("view_proposal", proposal_id=proposal_id))
 
 
 @app.route("/proposal/<proposal_id>")
@@ -216,6 +226,37 @@ def view_proposal(proposal_id):
         gap_data=gap_data,
         twin_session=twin_session
     )
+
+
+@app.route("/proposal/<proposal_id>/status")
+def proposal_status(proposal_id):
+    proposal = db.get_proposal(proposal_id)
+    if not proposal:
+        return jsonify({"error": "not found"}), 404
+    status_map = {
+        "generating": "GENERATING",
+        "awaiting_approval": "AWAITING_APPROVAL",
+        "ready": "READY",
+        "error": "ERROR",
+    }
+    return jsonify({"status": status_map.get(proposal.status, proposal.status.upper())})
+
+
+@app.route("/proposal/<proposal_id>/approve", methods=["POST"])
+def approve_proposal(proposal_id):
+    proposal = db.get_proposal(proposal_id)
+    if not proposal:
+        return "Proposal not found", 404
+    if proposal.status == "ready":
+        flash("Already approved — the client link is ready below.")
+        return redirect(url_for("view_proposal", proposal_id=proposal_id))
+    if proposal.status != "awaiting_approval":
+        flash("Proposal is not ready for approval yet.")
+        return redirect(url_for("view_proposal", proposal_id=proposal_id))
+    create_twin_session(proposal_id)
+    proposal.status = "ready"
+    db.save_proposal(proposal)
+    return redirect(url_for("view_proposal", proposal_id=proposal_id))
 
 
 # -----------------------------------------------------------------------
@@ -253,6 +294,21 @@ def twin_message(session_id):
     except Exception:
         app.logger.exception("Twin message handling failed")
         return jsonify({"error": "Something went wrong handling your message. Please try again."}), 500
+
+
+@app.route("/twin/<session_id>/message/stream", methods=["POST"])
+def twin_message_stream(session_id):
+    data = request.get_json()
+    user_message = data.get("message", "").strip() if data else ""
+    if not user_message:
+        return jsonify({"error": "Empty message"}), 400
+    try:
+        generator = handle_twin_message_stream(session_id, user_message)
+        return Response(stream_with_context(generator), mimetype="text/event-stream",
+                        headers={"X-Accel-Buffering": "no", "Cache-Control": "no-cache"})
+    except Exception:
+        app.logger.exception("Twin stream failed for session %s", session_id)
+        return jsonify({"error": "Streaming failed. Please try again."}), 500
 
 
 @app.route("/twin/<session_id>/end", methods=["POST"])
