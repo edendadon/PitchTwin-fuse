@@ -7,14 +7,14 @@
     <h1>Proposal: {{ proposal.company_name }}</h1>
     {% if profile %}<p class="page-subtitle">Consultant: <strong>{{ profile.name }}</strong></p>{% endif %}
   </div>
-  {% if twin_session %}
   <div class="header-actions">
-    <a href="/twin/{{ twin_session.id }}" class="btn-twin" target="_blank">
-      Open Client Twin Link
-    </a>
+    <a href="/proposal/{{ proposal.id }}/export/pdf" class="btn-secondary">Download PDF</a>
+    <a href="/proposal/{{ proposal.id }}/export/docx" class="btn-secondary">Download DOCX</a>
+    {% if twin_session %}
+    <a href="/twin/{{ twin_session.id }}" class="btn-twin" target="_blank">Open Client Twin Link</a>
     <a href="/debrief/{{ proposal.id }}" class="btn-secondary">View Debrief</a>
+    {% endif %}
   </div>
-  {% endif %}
 </div>
 
 <!-- Twin link for sharing -->

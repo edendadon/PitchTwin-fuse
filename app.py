@@ -3,16 +3,18 @@ PitchTwin — Flask Application
 Your CV, came to life.
 
 Routes:
-  GET  /                          — consultant dashboard
-  POST /profile/new               — create consultant profile
-  POST /profile/extract-cv        — extract text from uploaded CV file (PDF/DOCX/TXT)
-  POST /proposal/new              — trigger full pipeline
-  GET  /proposal/<id>             — view proposal package
-  GET  /twin/<session_id>         — client twin chat interface
-  POST /twin/<session_id>/message — client sends message
-  POST /twin/<session_id>/end     — end session, trigger debrief
-  GET  /debrief/<proposal_id>     — view debrief report
-  POST /demo/seed                 — load demo data for quick demo
+  GET  /                                — consultant dashboard
+  POST /profile/new                     — create consultant profile
+  POST /profile/extract-cv              — extract text from uploaded CV file (PDF/DOCX/TXT)
+  POST /proposal/new                    — trigger full pipeline
+  GET  /proposal/<id>                   — view proposal package
+  GET  /proposal/<id>/export/pdf        — download proposal as PDF
+  GET  /proposal/<id>/export/docx       — download proposal as DOCX
+  GET  /twin/<session_id>               — client twin chat interface
+  POST /twin/<session_id>/message       — client sends message
+  POST /twin/<session_id>/end           — end session, trigger debrief
+  GET  /debrief/<proposal_id>           — view debrief report
+  POST /demo/seed                       — load demo data for quick demo
 """
 
 import os
@@ -20,7 +22,7 @@ import uuid
 import json
 import threading
 from datetime import datetime
-from flask import Flask, render_template, request, redirect, url_for, jsonify, session
+from flask import Flask, render_template, request, redirect, url_for, jsonify, session, Response
 from werkzeug.utils import secure_filename
 from dotenv import load_dotenv
 
@@ -206,6 +208,46 @@ def view_proposal(proposal_id):
         profile=profile,
         gap_data=gap_data,
         twin_session=twin_session
+    )
+
+
+# -----------------------------------------------------------------------
+# Proposal Export
+# -----------------------------------------------------------------------
+
+@app.route("/proposal/<proposal_id>/export/pdf")
+def export_proposal_pdf(proposal_id):
+    proposal = db.get_proposal(proposal_id)
+    if not proposal:
+        return "Proposal not found", 404
+    profile = db.get_profile(proposal.consultant_id)
+
+    from export import generate_pdf
+    pdf_bytes = generate_pdf(proposal, profile)
+
+    filename = f"proposal-{proposal.company_name.replace(' ', '-').lower()}.pdf"
+    return Response(
+        pdf_bytes,
+        mimetype="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@app.route("/proposal/<proposal_id>/export/docx")
+def export_proposal_docx(proposal_id):
+    proposal = db.get_proposal(proposal_id)
+    if not proposal:
+        return "Proposal not found", 404
+    profile = db.get_profile(proposal.consultant_id)
+
+    from export import generate_docx
+    docx_bytes = generate_docx(proposal, profile)
+
+    filename = f"proposal-{proposal.company_name.replace(' ', '-').lower()}.docx"
+    return Response(
+        docx_bytes,
+        mimetype="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
 
 
