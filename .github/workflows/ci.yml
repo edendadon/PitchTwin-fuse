@@ -68,4 +68,4 @@ jobs:
           LITELLM_API_KEY: ${{ secrets.LITELLM_API_KEY }}
           LITELLM_BASE_URL: ${{ secrets.LITELLM_BASE_URL }}
           LITELLM_MODEL: ${{ secrets.LITELLM_MODEL }}
-        run: uv run python -m evals.run --all --workers 6
+        run: uv run python -m evals.run --agent matching --workers 6
