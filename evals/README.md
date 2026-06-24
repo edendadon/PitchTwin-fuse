@@ -14,16 +14,21 @@ uv run python -m evals.run --agent matching     # evaluate one agent
 uv run python -m evals.run --all                # evaluate all 7 agents
 uv run python -m evals.run --all --workers 6    # ...in parallel (default is 6)
 uv run python -m evals.run --all --workers 1    # serial (one case at a time)
-uv run python -m evals.run --agent matching --samples 3   # majority-vote the judge (tames variance)
+uv run python -m evals.run --agent matching --samples 1   # faster local check (1 judge call)
 uv run python -m evals.run --agent matching --json out.json   # also write the JSON report
 ```
 
 Needs an LLM provider configured in `.env` (the judge + agents call the model).
 
+**Judge stability (`--samples`):** the hallucination gate is an LLM judge, so a
+single call occasionally mis-flags grounded output. Each run therefore judges
+every case **3 times and takes the majority vote** (`--samples` defaults to 3) so
+verdicts are stable run-to-run. Drop to `--samples 1` for a quick, cheaper local
+check; raise it if you still see flaky cases.
+
 **Parallelism:** `--all` runs cases concurrently via pytest-xdist — `--workers`
-defaults to **6** (so plain `--all` is already parallel). The full 35-case suite
-runs in ~9 min at `-n6` vs ~54 min serial. Lower `--workers` if you hit provider
-rate limits; use `--workers 1` for deterministic serial debugging.
+defaults to **6** (so plain `--all` is already parallel). Lower `--workers` if you
+hit provider rate limits; use `--workers 1` for serial debugging.
 
 ### Exit codes (for CI)
 
@@ -143,4 +148,5 @@ evals/
 ```
 
 The hallucination judge runs through the project's `LLMClient` (same provider as the
-agents). Use `--samples N` for judge majority voting to tame non-determinism.
+agents). It judges each case `--samples` times (default 3) and takes the majority
+vote to tame single-call non-determinism.
