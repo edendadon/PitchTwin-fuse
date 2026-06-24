@@ -4,7 +4,7 @@
 
 **Inputs**: plan.md, research.md, data-model.md, contracts/, quickstart.md
 
-**Tech**: GitHub Actions (`actions/checkout@v4`), `aquasecurity/trivy-action@0.33.1`, `github/codeql-action@v3`, Dependabot v2 (`uv` + `github-actions`). Python 3.11. Advisory rollout. Worktree: `.worktrees/005-ci-security-scanning`.
+**Tech**: GitHub Actions (`actions/checkout@v4`), `aquasecurity/trivy-action@v0.33.1`, `github/codeql-action@v3`, Dependabot v2 (`uv` + `github-actions`). Python 3.11. Advisory rollout. Worktree: `.worktrees/005-ci-security-scanning`.
 
 **No TDD test tasks**: workflow/config YAML is validated via schema/lint + live CI run, not unit tests (none requested in spec). Validation tasks are included instead.
 
@@ -27,7 +27,7 @@
 **Goal**: Trivy scans dependencies + config on PR/push/weekly; findings reach code scanning.
 **Independent test**: Open a PR; `Trivy` run appears, completes ≤10 min, uploads `trivy-fs`/`trivy-config` SARIF, does not block the PR.
 
-- [X] T003 [SYNC] [US1] Create `.github/workflows/trivy.yml`: triggers `pull_request`(main) + `push`(main) + weekly `schedule`; top-level `contents: read`; scan job `security-events: write`; `aquasecurity/trivy-action@0.33.1` `scan-type: fs` (`scanners: vuln,secret`, `ignore-unfixed: true`, `exit-code: 0`, `format: sarif`, `output: trivy-fs.sarif`) then `github/codeql-action/upload-sarif@v3` (`category: trivy-fs`, `if: always()`); plus a second `scan-type: config` pass → `trivy-config.sarif` uploaded with `category: trivy-config`; `timeout-minutes: 10` — file: `.github/workflows/trivy.yml`
+- [X] T003 [SYNC] [US1] Create `.github/workflows/trivy.yml`: triggers `pull_request`(main) + `push`(main) + weekly `schedule`; top-level `contents: read`; scan job `security-events: write`; `aquasecurity/trivy-action@v0.33.1` `scan-type: fs` (`scanners: vuln,secret`, `ignore-unfixed: true`, `exit-code: 0`, `format: sarif`, `output: trivy-fs.sarif`) then `github/codeql-action/upload-sarif@v3` (`category: trivy-fs`, `if: always()`); plus a second `scan-type: config` pass → `trivy-config.sarif` uploaded with `category: trivy-config`; `timeout-minutes: 10` — file: `.github/workflows/trivy.yml`
 - [X] T004 [P] [ASYNC] [US1] Validate `trivy.yml` parses and is schema-valid (`actionlint .github/workflows/trivy.yml` if available, else `python -c "import yaml; yaml.safe_load(open('.github/workflows/trivy.yml'))"`) — file: `.github/workflows/trivy.yml`
 
 **Checkpoint**: Trivy workflow valid and self-contained (does not touch `ci.yml`).

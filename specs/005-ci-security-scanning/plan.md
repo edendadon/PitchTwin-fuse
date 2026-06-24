@@ -16,7 +16,7 @@ Triggers for the scanners: `pull_request` + `push` to `main` + weekly `schedule`
 ## Technical Context
 
 **Language/Version**: Python 3.11 (CI pins 3.11; CodeQL language = `python`)
-**Primary Dependencies**: GitHub Actions (`actions/checkout@v4`), `aquasecurity/trivy-action@0.33.1`, `github/codeql-action` (v3 init/analyze + `upload-sarif`), Dependabot (GitHub-native, `uv` + `github-actions` ecosystems)
+**Primary Dependencies**: GitHub Actions (`actions/checkout@v4`), `aquasecurity/trivy-action@v0.33.1`, `github/codeql-action` (v3 init/analyze + `upload-sarif`), Dependabot (GitHub-native, `uv` + `github-actions` ecosystems)
 **Storage**: N/A (CI config only; findings persist in GitHub code scanning)
 **Testing**: Existing `pytest` suite + `ruff`; validate new YAML with `actionlint`/`yamllint` if available, otherwise schema review
 **Target Platform**: GitHub Actions `ubuntu-latest` runners

@@ -13,9 +13,9 @@
 - Runs on `ubuntu-latest`, `timeout-minutes: 10`.
 - Steps:
   1. `actions/checkout@v4`
-  2. `aquasecurity/trivy-action@0.33.1` — `scan-type: fs`, `scanners: vuln,secret`, `format: sarif`, `output: trivy-fs.sarif`, `exit-code: 0` (advisory), `ignore-unfixed: true`.
+  2. `aquasecurity/trivy-action@v0.33.1` — `scan-type: fs`, `scanners: vuln,secret`, `format: sarif`, `output: trivy-fs.sarif`, `exit-code: 0` (advisory), `ignore-unfixed: true`.
   3. `github/codeql-action/upload-sarif@v3` — `sarif_file: trivy-fs.sarif`, `category: trivy-fs`, `if: always()`.
-  4. `aquasecurity/trivy-action@0.33.1` — `scan-type: config`, `format: sarif`, `output: trivy-config.sarif`, `exit-code: 0`.
+  4. `aquasecurity/trivy-action@v0.33.1` — `scan-type: config`, `format: sarif`, `output: trivy-config.sarif`, `exit-code: 0`.
   5. `github/codeql-action/upload-sarif@v3` — `sarif_file: trivy-config.sarif`, `category: trivy-config`, `if: always()`.
 
 ## Behavioral contract
