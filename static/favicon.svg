@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="PitchTwin">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6366f1"/>
+      <stop offset="1" stop-color="#4f46e5"/>
+    </linearGradient>
+  </defs>
+  <rect width="100" height="100" rx="22" fill="url(#bg)"/>
+  <path fill="#ffffff" fill-rule="evenodd"
+        d="M32 24 H54 A16 16 0 0 1 54 56 H46 V78 H32 Z M46 32 H54 A8 8 0 0 1 54 48 H46 Z"/>
+</svg>
